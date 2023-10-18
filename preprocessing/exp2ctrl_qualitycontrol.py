@@ -2,13 +2,6 @@ import os
 import numpy as np
 import pandas as pd
 
-import matplotlib.pyplot as plt
-plt.rcParams['axes.facecolor'] = 'white'
-plt.rcParams['figure.facecolor'] = 'white'
-
-os.chdir('../functions')
-from functions.utils import *
-
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -37,37 +30,6 @@ nTrials = {
     'V3-100_V0-0':80, 
     'Va-75_Vd-25':180, 
     'Vd-75_Va-25':180}
-
-equation = 'line'
-
-#%% Parameters
-# run always
-screen_width_px  = 1920 # px
-screen_height_px = 1080 # px
-screen_width_cm  = 70   # cm
-viewingDistance  = 57.  # cm
-
-tan              = np.arctan((screen_width_cm/2)/viewingDistance)
-screen_width_deg = 2. * tan * 180/np.pi
-px_per_deg       = screen_width_px / screen_width_deg
-
-def switch_X(argument):
-    switcher = {
-        'DR': 1,
-        'UR': 1,
-        'DL': -1,
-        'UL': -1
-    }
-    return switcher.get(argument)
-
-def switch_Y(argument):
-    switcher = {
-        'DR': -1,
-        'UR': 1,
-        'DL': -1,
-        'UL': 1
-    }
-    return switcher.get(argument)
     
 for sub in subjects:
     print('Subject:',sub)

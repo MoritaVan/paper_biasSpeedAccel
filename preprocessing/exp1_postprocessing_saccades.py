@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 main_dir = "../biasSpeed"
-data_dir = "../data\\biasSpeed" # 
+data_dir = "../data/biasSpeed" # 
 os.chdir(main_dir) 
 
 import warnings
@@ -23,8 +23,6 @@ warnings.filterwarnings("ignore")
 import traceback
 
 
-#%% Parameters
-# run always
 screen_width_px  = 1920 # px
 screen_height_px = 1080 # px
 screen_width_cm  = 70   # cm

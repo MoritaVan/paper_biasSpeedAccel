@@ -14,13 +14,8 @@ import os
 import numpy as np
 import pandas as pd
 
-import matplotlib.pyplot as plt
-
-plt.rcParams['figure.facecolor'] = 'white'
-plt.rcParams['axes.facecolor'] = 'white'
-
-main_dir = "../data/biasAcceleration" # mesocenter
-os.chdir(main_dir) # pc lab
+main_dir = "../data/biasAcceleration" 
+os.chdir(main_dir) 
 
 import warnings
 warnings.filterwarnings("ignore")

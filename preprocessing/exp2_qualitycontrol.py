@@ -2,14 +2,6 @@ import os
 import numpy as np
 import pandas as pd
 
-import matplotlib.pyplot as plt
-plt.rcParams['axes.facecolor'] = 'white'
-plt.rcParams['figure.facecolor'] = 'white'
-
-
-os.chdir('../functions')
-from functions.utils import *
-
 import warnings
 warnings.filterwarnings("ignore")
 

@@ -16,22 +16,16 @@ subXX_BA_qualityControl.h5 - list of trials with labels for bad data and bad fit
 """
 #%%
 import os
-import sys
-import h5py
-import time as timer
-import scipy.io
 import numpy as np
 import pandas as pd
-import copy
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from scipy.interpolate import interp1d
 
 os.chdir("../ANEMO") 
 from ANEMO import ANEMO, read_edf
 
-os.chdir("../functions") # mesocenter
+os.chdir("../functions")
 from functions.utils import *
 
 

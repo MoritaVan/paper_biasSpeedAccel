@@ -15,42 +15,6 @@ import os
 import numpy as np
 import pandas as pd
 
-import matplotlib.pyplot as plt
-
-os.chdir("/home/vmorita/projects/biasSpeed/functions") # mesocenter
-from functions.utils import *
-
-
-SMALL_SIZE = 10
-MEDIUM_SIZE = 12
-# BIGGER_SIZE = 10
-
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=MEDIUM_SIZE)  # fontsize of the figure title
-
-plt.rcParams['figure.facecolor'] = 'white'
-plt.rcParams['figure.titleweight'] = 'bold'
-plt.rcParams['axes.facecolor'] = 'white'
-plt.rcParams['axes.spines.right'] = False
-plt.rcParams['axes.spines.top'] = False
-plt.rcParams['font.family'] = 'Helvetica'
-# plt.rcParams['font.family'] = 'sans-serif'
-# plt.rcParams['font.sans-serif'] = ['Arial', 'DejaVu']
-plt.rcParams['savefig.dpi'] = 300
-plt.rcParams['svg.fonttype'] = 'none'
-plt.rcParams['pdf.fonttype'] = 42
-plt.rcParams['ps.fonttype'] = 42
-
-cm = 1/2.54  # centimeters in inches
-single_col = 9*cm
-# oneDot5_col = 12.7*cm
-two_col = 19*cm
-
 main_dir = "../data/biasSpeed" 
 os.chdir(main_dir) 
 
@@ -186,7 +150,7 @@ for sub in subjects:
 
     print('\t',tempDF.shape)
 
-    # transform into a dataframe and save into sXX_4C_smoothPursuitData.h5
+    # transform into a dataframe and save into sXX_biasSpeed_smoothPursuitData.h5
 
     temp = np.empty((len(tempDF),len(keys))).astype(object)
 
@@ -210,7 +174,6 @@ for sub in subjects:
     temp[:,9]  = tempDF['classic_lat_x']
     temp[:,10] = tempDF['latency_x']
 
-    params = []
     params = pd.DataFrame(temp, columns=keys)
 
     float_keys = ['velocity_model_x', 
@@ -219,7 +182,7 @@ for sub in subjects:
             'classic_lat_x','latency_x',]
     params[float_keys] = params[float_keys].astype(float)
 
-    h5_file = ''.join([str(sub),'/', str(sub), '_biasSpeed_smoothPursuitData.h5'])
+    h5_file = '{s}/{s}_biasSpeed_smoothPursuitData.h5'.format(s=sub)
     params.to_hdf(h5_file, 'data')
 
     del tempDF, temp

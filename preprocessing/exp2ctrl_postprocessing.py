@@ -14,14 +14,6 @@ import os
 import numpy as np
 import pandas as pd
 
-import matplotlib.pyplot as plt
-
-os.chdir("../functions")
-from functions.utils import *
-
-plt.rcParams['figure.facecolor'] = 'white'
-plt.rcParams['axes.facecolor'] = 'white'
-
 main_dir = "../data/biasAccelerationControl" 
 os.chdir(main_dir)
 

@@ -1,21 +1,6 @@
 import os
-import time as timer
-import h5py
-import scipy.io
 import numpy as np
 import pandas as pd
-import json
-import scipy.stats as stats
-
-from math import atan2, degrees
-
-import matplotlib.pyplot as plt
-plt.rcParams['axes.facecolor'] = 'white'
-plt.rcParams['figure.facecolor'] = 'white'
-
-import seaborn as sns
-from matplotlib.backends.backend_pdf import PdfPages
-
 
 main_dir = "../data/biasSpeed"
 
@@ -50,19 +35,6 @@ nTrials = {
     'p90':500, 
     'p100':250, 
     }
-
-equation = 'line'
-
-#%% Parameters
-# run always
-screen_width_px  = 1920 # px
-screen_height_px = 1080 # px
-screen_width_cm  = 70   # cm
-viewingDistance  = 57.  # cm
-
-tan              = np.arctan((screen_width_cm/2)/viewingDistance)
-screen_width_deg = 2. * tan * 180/np.pi
-px_per_deg       = screen_width_px / screen_width_deg
 
 # get manual quality control data
 # manual_qc = pd.read_excel('qc_line.xlsx', sheet_name='qc_line') 
