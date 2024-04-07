@@ -1,7 +1,6 @@
-def fontsizeDict(small:int=10, medium:int=12, big:int=14):
+def fontsizeDict(small:int=10, medium:int=12):
     SMALL_SIZE = small
     MEDIUM_SIZE = medium
-    BIGGER_SIZE = big
 
     return {"font.size":SMALL_SIZE,
             "axes.titlesize":MEDIUM_SIZE,

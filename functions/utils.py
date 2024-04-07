@@ -50,7 +50,7 @@ def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
 
 
-def plotFig(trial_idx, tg_time, tg_vel, time_x, vel_x, equ_x, start_a_x, lat_x, ax=None, show=False) -> None:
+def plotFig(trial_idx, tg_vel, time_x, vel_x, equ_x, start_a_x, lat_x, ax=None, show=False) -> None:
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -60,21 +60,60 @@ def plotFig(trial_idx, tg_time, tg_vel, time_x, vel_x, equ_x, start_a_x, lat_x, 
         f = plt.figure(figsize=(7,4))
     
     plt.title('Trial %d' % trial_idx)
-    plt.plot(tg_time, tg_vel, linewidth = 1, linestyle = '--', color = '0.5')
+    plt.hlines(y = 0, xmin=time_x[0], xmax=0, linewidth = 1, linestyle = '--', color = 'k')
+    plt.hlines(y = tg_vel, xmin=0, xmax=500, linewidth = 1, linestyle = '--', color = 'k')
+    plt.vlines(x = 0, ymin=0, ymax=tg_vel, linewidth = 1, linestyle = '--', color = 'k')
     plt.plot(time_x, vel_x, color = np.array([5, 94, 255])/255)
     plt.plot(time_x, equ_x, color = np.array([255, 35, 0])/255)
-    plt.axvline(x = 0, linewidth = 1, linestyle = '--', color = 'k')
     plt.fill_between(time_x, -40, 40, where=box_x, color='gray', alpha=0.1, interpolate=True)
-    plt.text(start_a_x, 19, 'start anticip.', ha='right', va='top', rotation=90)
-    plt.text(lat_x, 19, 'latency', ha='right', va='top', rotation=90)
-    plt.ylim(-2,20)
+    plt.text(start_a_x, 17, 'anticip. onset', ha='right', va='top', rotation=90)
+    plt.text(lat_x, 17, 'anticip. offset', ha='right', va='top', rotation=90)
+    plt.ylim(-2,18)
     plt.xlabel('Time (ms)')
     plt.ylabel('Velocity (deg/s) x-axis')
 
     if show:
         plt.show()
 
+def plotFig2(trial_idx, tg_time, tg_vel, tg_dir_v, tg_dir_h, time_y, vel_y, equ_y, start_a_y, lat_y, time_x, vel_x, equ_x, start_a_x, lat_x, ax=None, show=False) -> None:
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    dir_v = 1 if tg_dir_v=='U' else -1
+    dir_h = 1 if tg_dir_h=='R' else -1
 
+    box_x = (time_x > start_a_x) & (time_x < lat_x)
+    box_y = (time_y > start_a_y) & (time_y < lat_y)
+
+    if ax == None:
+        f = plt.figure(figsize=(15,4))
+        
+    plt.suptitle('Trial %d' % trial_idx)
+    plt.subplot(1,2,1)
+    plt.plot(tg_time, tg_vel*dir_h, linewidth = 1, linestyle = '--', color = '0.5')
+    plt.plot(time_x, vel_x, color = np.array([5, 94, 255])/255)
+    plt.plot(time_x, equ_x, color = np.array([255, 35, 0])/255)
+    plt.axvline(x = 0, linewidth = 1, linestyle = '--', color = 'k')
+    plt.fill_between(time_x, -40, 40, where=box_x, color='gray', alpha=0.1, interpolate=True)
+    plt.text(start_a_x, 30, 'start anticip.', ha='right', va='top', rotation=90)
+    plt.text(lat_x, 30, 'latency', ha='right', va='top', rotation=90)
+    plt.ylim(-35,35)
+    plt.xlabel('Time (ms)')
+    plt.ylabel('Velocity (deg/s) x axis')
+    plt.subplot(1,2,2)
+    plt.plot(tg_time, tg_vel*dir_v, linewidth = 1, linestyle = '--', color = '0.5')
+    plt.plot(time_y, vel_y, color = np.array([5, 94, 255])/255)
+    plt.plot(time_y, equ_y, color = np.array([255, 35, 0])/255)
+    plt.axvline(x = 0, linewidth = 1, linestyle = '--', color = 'k')
+    plt.fill_between(time_y, -40, 40, where=box_y, color='gray', alpha=0.1, interpolate=True)
+    plt.text(start_a_y, 30, 'start anticip.', ha='right', va='top', rotation=90)
+    plt.text(lat_y, 30, 'latency', ha='right', va='top', rotation=90)
+    plt.ylim(-35,35)
+    plt.xlabel('Time (ms)')
+    plt.ylabel('Velocity (deg/s) y axis')
+
+    if show:
+        plt.show()
 
 
 def closest(lst, K): 
@@ -82,7 +121,7 @@ def closest(lst, K):
 
     lst = np.asarray(lst) 
     idx = (np.abs(lst - K)).argmin() 
-    return lst[idx] 
+    return lst[idx], idx
 
 
 def old_plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=None, ax=None, jitter=.125, scatterSize:int=.5, showfliers:bool=True, alpha:int=10, showKde:bool=True, showBox:bool=True, xticks=None, cmapName:str='winter') -> None:

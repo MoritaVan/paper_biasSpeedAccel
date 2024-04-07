@@ -1,10 +1,10 @@
 import os
+import sys
 import numpy as np
 import pandas as pd
 
-main_dir = "../data/biasSpeed"
+sys.path.append('./')
 
-os.chdir('../functions')
 from functions.utils import *
 
 import warnings
@@ -38,7 +38,7 @@ nTrials = {
 
 # get manual quality control data
 # manual_qc = pd.read_excel('qc_line.xlsx', sheet_name='qc_line') 
-manual_qc = pd.read_csv('qc_line.csv', sep=';') 
+manual_qc = pd.read_csv('qc_line_noSPss.csv', sep=';') 
 for sub in subjects:
     print('Subject:',sub)
                           
@@ -46,16 +46,8 @@ for sub in subjects:
         print(cond)
         
         # get bad data
-        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl.h5'.format(sub=sub, cond=cond)
+        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_no-SPss.h5'.format(sub=sub, cond=cond)
         cq        = pd.read_hdf(h5_qcfile, 'data/')
-        
-        # next block done because there was an error in saving the qc file, which was corrected, so only need to run it once.
-        for idx,trial in enumerate(cq['trial']):
-            tmp = trial['filename'].split('_')
-            tmp = tmp[0]
-            tmp = tmp[2:]
-            
-            cq['trial'].at[idx] = int(tmp)
             
         missingTrials = list(set(np.arange(1,nTrials[cond]+1,1)) - set(cq['trial']))
         
@@ -67,5 +59,5 @@ for sub in subjects:
         cq.loc[cq['trial'].isin(idx),'keep_trial'] = 0
         cq.reset_index(inplace=True)
         
-        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_afterManualCtrl.h5'.format(sub=sub, cond=cond)
+        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_no-SPss_final.h5'.format(sub=sub, cond=cond)
         cq.to_hdf(h5_qcfile, 'data/')

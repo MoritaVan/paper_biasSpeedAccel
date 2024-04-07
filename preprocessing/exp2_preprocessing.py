@@ -16,17 +16,18 @@ subXX_BA_qualityControl.h5 - list of trials with labels for bad data and bad fit
 """
 #%%
 import os
+import sys
 import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
+sys.path.append('./')
+from functions.utils import *
+
 os.chdir("../ANEMO") 
 from ANEMO import ANEMO, read_edf
-
-os.chdir("../functions") 
-from functions.utils import *
 
 main_dir = "../data/biasAcceleration" 
 os.chdir(main_dir) 
@@ -232,32 +233,50 @@ velocities = {
 showPlots   = 0 
 manualCheck = 0
 
-equation = 'line'
+equation = 'linear'
+# equation = 'nonlinear'
+# equation = 'sigmoid'
+print('\n\t\tEquation:\t',equation.upper(),'\n')
 
 for idxSub, sub in enumerate(subjects):
     idxSub = idxSub + 1
     print('Subject:',sub)
 
     for cond in conditions:
-        if equation=='sigmoid':
-            allow_baseline, allow_horizontalShift, allow_acceleration = False, True, False
-        else:
-            fit_steadyState = False
-            
+        outputFolder_plots = '{sub}/plots/'.format(sub=sub)
+        
         try :
-            h5_file = '{sub}/{sub}_{cond}_posFilter.h5'.format(sub=sub, cond=cond) 
-            h5_rawfile = '{sub}/{sub}_{cond}_rawData.h5'.format(sub=sub, cond=cond)
-            h5_qcfile = '{sub}/{sub}_{cond}_qualityControl.h5'.format(sub=sub, cond=cond) 
-            
+            dataFile   = '{main_dir}/raw/{sub}/{sub}_{cond}_eyeData.asc'.format(main_dir=".",sub=sub, cond=cond) # VANESSA lab
+            tgDirFile  = '{main_dir}/raw/{sub}/{sub}_{cond}_events.tsv'.format(main_dir=".", sub=sub, cond=cond) # VANESSA lab
+                
+            if equation=='nonlinear':
+                h5_file = '{sub}/{sub}_{cond}_posFilter_nonlinear.h5'.format(sub=sub, cond=cond) 
+                h5_rawfile = '{sub}/{sub}_{cond}_rawData_nonlinear.h5'.format(sub=sub, cond=cond)
+                h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_nonlinear.h5'.format(sub=sub, cond=cond) 
+                fitPDFFile = '{plotFolder}{sub}_{cond}_fit_nonlinear.pdf'.format(plotFolder=outputFolder_plots, sub=sub, cond=cond)
+                badFitsFile = '{}/qc/{}_{}_badFits_nonlinear.pdf'.format(outputFolder_plots, sub, cond)   
+
+            elif equation=='sigmoid':
+                h5_file = '{sub}/{sub}_{cond}_posFilter_lin-sigmo.h5'.format(sub=sub, cond=cond) 
+                h5_rawfile = '{sub}/{sub}_{cond}_rawData_lin-sigmo.h5'.format(sub=sub, cond=cond)
+                h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_lin-sigmo.h5'.format(sub=sub, cond=cond)
+                fitPDFFile = '{plotFolder}{sub}_{cond}_fit_lin-sigmo.pdf'.format(plotFolder=outputFolder_plots, sub=sub, cond=cond)
+                badFitsFile = '{}/qc/{}_{}_badFits_lin-sigmo.pdf'.format(outputFolder_plots, sub, cond)   
+
+                allow_baseline, allow_horizontalShift = True, True
+
+            elif equation=='linear':    
+                h5_file = '{sub}/{sub}_{cond}_posFilter_linear.h5'.format(sub=sub, cond=cond) 
+                h5_rawfile = '{sub}/{sub}_{cond}_rawData_linear.h5'.format(sub=sub, cond=cond)
+                h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_linear.h5'.format(sub=sub, cond=cond)
+                fitPDFFile = '{plotFolder}{sub}_{cond}_fit_linear.pdf'.format(plotFolder=outputFolder_plots, sub=sub, cond=cond)
+                badFitsFile = '{}/qc/{}_{}_badFits_linear.pdf'.format(outputFolder_plots, sub, cond)   
+
+                fit_steadyState = False
+
             paramsRaw   = pd.DataFrame()
             qualityCtrl = pd.DataFrame()
             paramsSub   = pd.DataFrame()
-
-            dataFile   = '{main_dir}/raw/{sub}/{sub}_{cond}_eyeData.asc'.format(main_dir=main_dir,sub=sub, cond=cond) # VANESSA lab
-            tgDirFile  = '{main_dir}/raw/{sub}/{sub}_{cond}_events.tsv'.format(main_dir=main_dir, sub=sub, cond=cond) # VANESSA lab
-            
-            outputFolder_plots = '{sub}/plots/'.format(sub=sub)
-            fitPDFFile = '{plotFolder}{sub}_{cond}_fit.pdf'.format(plotFolder=outputFolder_plots, sub=sub, cond=cond)
 
             # make figure folder
             try: os.makedirs(outputFolder_plots)
@@ -266,16 +285,12 @@ for idxSub, sub in enumerate(subjects):
             try: os.makedirs(''.join([outputFolder_plots,'qc/']))
             except: pass
 
-            # testing
-            nanOverallFile  = ''.join([outputFolder_plots,'qc/', sub, '_', cond, '_nanOverall.pdf'])
-            nanOnsetFile    = ''.join([outputFolder_plots,'qc/', sub, '_', cond, '_nanOnset.pdf'])
-            nanSequenceFile = ''.join([outputFolder_plots,'qc/', sub, '_', cond, '_nanSequence.pdf'])
+            # for diagnostic purposes:
+            badTrialsFile  = '{}/qc/{}_{}_badTrials.pdf'.format(outputFolder_plots, sub, cond)
 
-            nanOverallpdf   = PdfPages(nanOverallFile)
-            nanOnsetpdf     = PdfPages(nanOnsetFile)
-            nanSequencepdf  = PdfPages(nanSequenceFile)
+            badTrialspdf   = PdfPages(badTrialsFile)
+            badFitspdf      = PdfPages(badFitsFile)
 
-            # if showPlots:
             pdf = PdfPages(fitPDFFile) # opens the pdf file to save the figures
 
             data   = read_edf(dataFile, start='FixOff', stop='TargetOff')
@@ -292,6 +307,7 @@ for idxSub, sub in enumerate(subjects):
             param_exp['dir_target'][0] = [1 if (item == 1) | (item==2) else -1 for item in tg_dir]
             
             param_exp['N_trials'] = len(data)
+            param_exp['N_trials'] = 30 # for test only
 
             # creates an ANEMO instance
             A   = ANEMO(param_exp)
@@ -453,15 +469,15 @@ for idxSub, sub in enumerate(subjects):
                         if ((np.mean(np.isnan(velocity_x_NAN[TargetOn_0-100:TargetOn_0+100])) > .7)):
                             print('too many NaNs around the start of the pursuit')
                             reason = reason + ' >.70 of NaNs around the start of the pursuit'
-                            nanOnsetpdf.savefig(fig)
+                            badTrialspdf.savefig(fig)
                         if np.mean(np.isnan(velocity_x_NAN[:-time_sup])) > .6:
                             print('too many NaNs overall')
                             reason = reason + ' >{0} of NaNs overall'.format(.6)
-                            nanOverallpdf.savefig(fig)
+                            badTrialspdf.savefig(fig)
                         if longestNanRun(velocity_x_NAN[TargetOn_0-150:TargetOn_0+600]) > 200:
                             print('at least one nan sequence with more than 200ms')
                             reason = reason + ' At least one nan sequence with more than 200ms'
-                            nanSequencepdf.savefig(fig)
+                            badTrialspdf.savefig(fig)
 
 
                         newResult = dict()
@@ -484,7 +500,8 @@ for idxSub, sub in enumerate(subjects):
 
                     else: # if not a bad trial, does the fit
                         
-                        max_time = velocities[tg_vel[trial]]['t'][-1]*1000 if equation=='sigmoid' else 300
+                        # max_time = velocities[tg_vel[trial]]['t'][-1]*1000 if equation=='sigmoid' else 300
+                        max_time = 300
 
                         vel_x = vel_x[time_x <= max_time]
                         vel_y = vel_y[time_y <= max_time]
@@ -495,53 +512,70 @@ for idxSub, sub in enumerate(subjects):
 
                         classic_lat_x, classic_max_x, classic_ant_x = A.classical_method.Full(vel_x, 300)
                         # print('classical latency: {:+.2f}, max: {:+.2f}, anti: {:+.2f}'.format(classic_lat_x, classic_max_x, classic_ant_x))
-                        classic_ant = classic_ant_x if not np.isnan(classic_ant_x) else 0.5
+                        classic_ant_x = classic_ant_x if not np.isnan(classic_ant_x) else 0.5
 
-                        param_fit, inde_var = Fit.generation_param_fit(equation = 'fct_velocity_sigmo',
-                                                            dir_target    = param_exp['dir_target'][1][trial],
-                                                            trackertime   = time_x,
-                                                            TargetOn      = 0,
-                                                            StimulusOf    = time_x[0],
-                                                            saccades      = new_saccades,
-                                                            value_latency = classic_lat_x,
-                                                            value_maxi    = classic_max_x,
-                                                            value_anti    = classic_ant*5)
-                        
                         classic_lat_y, classic_max_y, classic_ant_y = A.classical_method.Full(vel_y, 300)
                         # print('classical latency: {:+.2f}, max: {:+.2f}, anti: {:+.2f}'.format(classic_lat_y, classic_max_y, classic_ant_y))
-                        classic_ant = classic_ant_y if not np.isnan(classic_ant_y) else 0.5 # acceleration threshold, to avoid local minima when doing the fit
-
-                        param_fit_y, inde_var_y = Fit.generation_param_fit(equation = 'fct_velocity_sigmo',
-                                                            dir_target    = param_exp['dir_target'][0][trial],
-                                                            trackertime   = time_y,
-                                                            TargetOn      = 0,
-                                                            StimulusOf    = time_y[0],
-                                                            saccades      = new_saccades,
-                                                            value_latency = classic_lat_y,
-                                                            value_maxi    = classic_max_y,
-                                                            value_anti    = classic_ant*5)
+                        classic_ant_y = classic_ant_y if not np.isnan(classic_ant_y) else 0.5 # acceleration threshold, to avoid local minima when doing the fit
                         
-                        if equation=='sigmoid':
-
+                        if equation=='linear':
+                            param_fit_x, inde_var_x = Fit.generation_param_fit(equation = 'fct_velocity_line',
+                                                                dir_target    = param_exp['dir_target'][1][trial],
+                                                                trackertime   = time_x,
+                                                                TargetOn      = 0,
+                                                                StimulusOf    = time_x[0],
+                                                                saccades      = new_saccades,
+                                                                value_latency = classic_lat_x,
+                                                                value_maxi    = classic_max_x,
+                                                                value_anti    = classic_ant_x*5)
+                            param_fit_y, inde_var_y = Fit.generation_param_fit(equation = 'fct_velocity_line',
+                                                                dir_target    = param_exp['dir_target'][0][trial],
+                                                                trackertime   = time_y,
+                                                                TargetOn      = 0,
+                                                                StimulusOf    = time_y[0],
+                                                                saccades      = new_saccades,
+                                                                value_latency = classic_lat_y,
+                                                                value_maxi    = classic_max_y,
+                                                                value_anti    = classic_ant_y*5)
+                            
                             result_x = Fit.Fit_trial(vel_x,
-                                                    equation      = 'fct_velocity_sigmo',
+                                                    equation      = 'fct_velocity_line',
                                                     data_x        = pos_x,
                                                     dir_target    = param_exp['dir_target'][1][trial],
-                                                    trackertime   = time_x,
+                                                    trackertime   = list(inde_var_x['x']),
                                                     TargetOn      = 0,
                                                     StimulusOf    = time_x[0],
                                                     saccades      = new_saccades,
                                                     time_sup      = None,
-                                                    param_fit     = param_fit,
-                                                    inde_vars     = inde_var,
+                                                    step_fit      = 2,
+                                                    param_fit     = param_fit_x,
+                                                    inde_vars     = inde_var_x,
                                                     value_latency = classic_lat_x,
-                                                    value_maxi    = classic_max_x,
-                                                    value_anti    = classic_ant*5,
-                                                    allow_baseline = allow_baseline, 
-                                                    allow_horizontalShift = allow_horizontalShift, 
-                                                    allow_acceleration = allow_acceleration)
+                                                    value_steady_state = classic_max_x,
+                                                    value_anti    = classic_ant_x*5,
+                                                    fit_steadyState = fit_steadyState,
+                                                    )
+                            result_y = Fit.Fit_trial(vel_y,
+                                                    equation      = 'fct_velocity_line',
+                                                    data_x        = pos_y,
+                                                    dir_target    = param_exp['dir_target'][0][trial],
+                                                    trackertime   = list(inde_var_y['x']),
+                                                    TargetOn      = 0,
+                                                    StimulusOf    = time_y[0],
+                                                    saccades      = new_saccades,
+                                                    time_sup      = None,
+                                                    step_fit      = 2,
+                                                    param_fit     = param_fit_y,
+                                                    inde_vars     = inde_var_y,
+                                                    value_latency = classic_lat_y,
+                                                    value_steady_state = classic_max_y,
+                                                    value_anti    = classic_ant_y*5,
+                                                    fit_steadyState = fit_steadyState,
+                                                    )
 
-                            eq_x = ANEMO.Equation.fct_velocity_sigmo(inde_var['x'],
+                            eq_x = ANEMO.Equation.fct_velocity_line(inde_var_x['x'],
+                                                        result_x.params['t_0'],
+                                                        result_x.params['t_end'],
                                                         result_x.params['dir_target'],
                                                         result_x.params['baseline'],
                                                         result_x.params['start_anti'],
@@ -549,33 +583,10 @@ for idxSub, sub in enumerate(subjects):
                                                         result_x.params['latency'],
                                                         result_x.params['ramp_pursuit'],
                                                         result_x.params['steady_state'],
-                                                        result_x.params['horizontal_shift'],
-                                                        result_x.params['a_pur'],
-                                                        result_x.params['do_whitening'],
-                                                        allow_baseline = allow_baseline, 
-                                                        allow_horizontalShift = allow_horizontalShift, 
-                                                        allow_acceleration = allow_acceleration)
-                        
-
-                            result_y = Fit.Fit_trial(vel_y,
-                                                    equation      = 'fct_velocity_sigmo',
-                                                    data_x        = pos_y,
-                                                    dir_target    = param_exp['dir_target'][0][trial],
-                                                    trackertime   = time_y,
-                                                    TargetOn      = 0,
-                                                    StimulusOf    = time_y[0],
-                                                    saccades      = new_saccades,
-                                                    time_sup      = None,
-                                                    param_fit     = param_fit_y,
-                                                    inde_vars     = inde_var_y,
-                                                    value_latency = classic_lat_y,
-                                                    value_maxi    = classic_max_y,
-                                                    value_anti    = classic_ant*5,
-                                                    allow_baseline = allow_baseline, 
-                                                    allow_horizontalShift = allow_horizontalShift, 
-                                                    allow_acceleration = allow_acceleration)
-
-                            eq_y = ANEMO.Equation.fct_velocity_sigmo(inde_var_y['x'],
+                                                        fit_steadyState = fit_steadyState)
+                            eq_y = ANEMO.Equation.fct_velocity_line(inde_var_y['x'],
+                                                        result_y.params['t_0'],
+                                                        result_y.params['t_end'],
                                                         result_y.params['dir_target'],
                                                         result_y.params['baseline'],
                                                         result_y.params['start_anti'],
@@ -583,76 +594,173 @@ for idxSub, sub in enumerate(subjects):
                                                         result_y.params['latency'],
                                                         result_y.params['ramp_pursuit'],
                                                         result_y.params['steady_state'],
-                                                        result_y.params['horizontal_shift'],
-                                                        result_y.params['a_pur'],
-                                                        result_y.params['do_whitening'],
-                                                        allow_baseline = allow_baseline, 
-                                                        allow_horizontalShift = allow_horizontalShift, 
-                                                        allow_acceleration = allow_acceleration)
-                        else:
+                                                        fit_steadyState = fit_steadyState)
+                        elif equation=='nonlinear':
+                            param_fit_x, inde_var_x = Fit.generation_param_fit(equation = 'fct_velocity_antiSigmo',
+                                                                dir_target    = param_exp['dir_target'][1][trial],
+                                                                trackertime   = time_x,
+                                                                TargetOn      = 0,
+                                                                StimulusOf    = time_x[0],
+                                                                saccades      = new_saccades,
+                                                                value_latency = classic_lat_x,
+                                                                value_maxi    = classic_max_x,
+                                                                value_anti    = classic_ant_x*5)
+                            param_fit_y, inde_var_y = Fit.generation_param_fit(equation = 'fct_velocity_antiSigmo',
+                                                                dir_target    = param_exp['dir_target'][0][trial],
+                                                                trackertime   = time_y,
+                                                                TargetOn      = 0,
+                                                                StimulusOf    = time_y[0],
+                                                                saccades      = new_saccades,
+                                                                value_latency = classic_lat_y,
+                                                                value_maxi    = classic_max_y,
+                                                                value_anti    = classic_ant_y*5)
+                            
                             result_x = Fit.Fit_trial(vel_x,
-                                                    equation      = 'fct_velocity_line',
+                                                    equation      = 'fct_velocity_antiSigmo',
                                                     data_x        = pos_x,
                                                     dir_target    = param_exp['dir_target'][1][trial],
-                                                    trackertime   = time_x,
+                                                    trackertime   = list(inde_var_x['x']),
                                                     TargetOn      = 0,
                                                     StimulusOf    = time_x[0],
                                                     saccades      = new_saccades,
                                                     time_sup      = None,
-                                                    param_fit     = param_fit,
-                                                    inde_vars     = inde_var,
+                                                    step_fit      = 2,
+                                                    param_fit     = param_fit_x,
+                                                    inde_vars     = inde_var_x,
                                                     value_latency = classic_lat_x,
-                                                    value_maxi    = classic_max_x,
-                                                    value_anti    = classic_ant*5,
-                                                    fit_steadyState = fit_steadyState)
-
-                            eq_x_tmp = ANEMO.Equation.fct_velocity_line(inde_var['x'],
-                                                        result_x.params['dir_target'],
-                                                        result_x.params['baseline'],
-                                                        result_x.params['start_anti'],
-                                                        result_x.params['a_anti'],
-                                                        result_x.params['latency'],
-                                                        result_x.params['ramp_pursuit'],
-                                                        result_x.params['steady_state'],
-                                                        result_x.params['do_whitening'],
-                                                        fit_steadyState = fit_steadyState)
-                            
-                            eq_x_tmp = np.array(eq_x_tmp)
-                            eq_x = np.zeros(len(time_x))
-                            eq_x[:] = np.nan
-                            eq_x[:len(eq_x_tmp)] = eq_x_tmp
-
+                                                    value_steady_state = classic_max_x,
+                                                    value_anti    = classic_ant_x*5,
+                                                    allow_baseline = True,
+                                                    )
                             result_y = Fit.Fit_trial(vel_y,
-                                                    equation      = 'fct_velocity_line',
+                                                    equation      = 'fct_velocity_antiSigmo',
                                                     data_x        = pos_y,
                                                     dir_target    = param_exp['dir_target'][0][trial],
-                                                    trackertime   = time_y,
+                                                    trackertime   = list(inde_var_y['x']),
                                                     TargetOn      = 0,
                                                     StimulusOf    = time_y[0],
                                                     saccades      = new_saccades,
                                                     time_sup      = None,
+                                                    step_fit      = 2,
                                                     param_fit     = param_fit_y,
                                                     inde_vars     = inde_var_y,
                                                     value_latency = classic_lat_y,
-                                                    value_maxi    = classic_max_y,
-                                                    value_anti    = classic_ant*5,
-                                                    fit_steadyState = fit_steadyState)
+                                                    value_steady_state = classic_max_y,
+                                                    value_anti    = classic_ant_y*5,
+                                                    allow_baseline = True,
+                                                    )
 
-                            eq_y_tmp = ANEMO.Equation.fct_velocity_line(inde_var_y['x'],
-                                                        result_y.params['dir_target'],
-                                                        result_y.params['baseline'],
-                                                        result_y.params['start_anti'],
-                                                        result_y.params['a_anti'],
-                                                        result_y.params['latency'],
-                                                        result_y.params['ramp_pursuit'],
-                                                        result_y.params['steady_state'],
-                                                        result_y.params['do_whitening'],
-                                                        fit_steadyState = fit_steadyState)
+                            eq_x = ANEMO.Equation.fct_velocity_antiSigmo(
+                                                x = inde_var_x['x'],
+                                                t_0 = result_x.params['t_0'],
+                                                t_end = result_x.params['t_end'],
+                                                dir_target = result_x.params['dir_target'],
+                                                baseline = result_x.params['baseline'],
+                                                start_anti = result_x.params['start_anti'],
+                                                a_anti = result_x.params['a_anti'],
+                                                anti_offset = result_x.params['anti_offset'],
+                                                ramp_pursuit = result_x.params['ramp_pursuit'],
+                                                horizontal_shift = result_x.params['horizontal_shift'],
+                                                steady_state = result_x.params['steady_state'],
+                                                allow_baseline = result_x.params['allow_baseline'])
+                            eq_y = ANEMO.Equation.fct_velocity_antiSigmo(
+                                                x = inde_var_y['x'],
+                                                t_0 = result_y.params['t_0'],
+                                                t_end = result_y.params['t_end'],
+                                                dir_target = result_y.params['dir_target'],
+                                                baseline = result_y.params['baseline'],
+                                                start_anti = result_y.params['start_anti'],
+                                                a_anti = result_y.params['a_anti'],
+                                                anti_offset = result_y.params['anti_offset'],
+                                                ramp_pursuit = result_y.params['ramp_pursuit'],
+                                                horizontal_shift = result_y.params['horizontal_shift'],
+                                                steady_state = result_y.params['steady_state'],
+                                                allow_baseline = result_y.params['allow_baseline'])
+                        
+                        elif equation=='sigmoid':
+                            param_fit_x, inde_var_x = Fit.generation_param_fit(equation = 'fct_velocity_sigmo',
+                                                                dir_target    = param_exp['dir_target'][1][trial],
+                                                                trackertime   = time_x,
+                                                                TargetOn      = 0,
+                                                                StimulusOf    = time_x[0],
+                                                                saccades      = new_saccades,
+                                                                value_latency = classic_lat_x,
+                                                                value_maxi    = classic_max_x,
+                                                                value_anti    = classic_ant_x*5)
+                            param_fit_y, inde_var_y = Fit.generation_param_fit(equation = 'fct_velocity_sigmo',
+                                                                dir_target    = param_exp['dir_target'][0][trial],
+                                                                trackertime   = time_y,
+                                                                TargetOn      = 0,
+                                                                StimulusOf    = time_y[0],
+                                                                saccades      = new_saccades,
+                                                                value_latency = classic_lat_y,
+                                                                value_maxi    = classic_max_y,
+                                                                value_anti    = classic_ant_y*5)
                             
-                            eq_y_tmp = np.array(eq_y_tmp)
-                            eq_y = np.zeros(len(time_y))
-                            eq_y[:] = np.nan
-                            eq_y[:len(eq_y_tmp)] = eq_y_tmp
+                            result_x = Fit.Fit_trial(vel_x,
+                                                    equation      = 'fct_velocity_sigmo',
+                                                    data_x        = pos_x,
+                                                    dir_target    = param_exp['dir_target'][1][trial],
+                                                    trackertime   = list(inde_var_x['x']),
+                                                    TargetOn      = 0,
+                                                    StimulusOf    = time_x[0],
+                                                    saccades      = new_saccades,
+                                                    time_sup      = None,
+                                                    step_fit      = 2,
+                                                    param_fit     = param_fit_x,
+                                                    inde_vars     = inde_var_x,
+                                                    value_latency = classic_lat_x,
+                                                    value_steady_state = classic_max_x,
+                                                    value_anti    = classic_ant_x*5,
+                                                    allow_baseline = True,
+                                                    )
+                            result_y = Fit.Fit_trial(vel_y,
+                                                    equation      = 'fct_velocity_sigmo',
+                                                    data_x        = pos_y,
+                                                    dir_target    = param_exp['dir_target'][0][trial],
+                                                    trackertime   = list(inde_var_y['x']),
+                                                    TargetOn      = 0,
+                                                    StimulusOf    = time_y[0],
+                                                    saccades      = new_saccades,
+                                                    time_sup      = None,
+                                                    step_fit      = 2,
+                                                    param_fit     = param_fit_y,
+                                                    inde_vars     = inde_var_y,
+                                                    value_latency = classic_lat_y,
+                                                    value_steady_state = classic_max_y,
+                                                    value_anti    = classic_ant_y*5,
+                                                    allow_baseline = True,
+                                                    )
+
+                            eq_x = ANEMO.Equation.fct_velocity_sigmo(
+                                                x = inde_var_x['x'],
+                                                t_0 = result_x.params['t_0'],
+                                                t_end = result_x.params['t_end'],
+                                                dir_target = result_x.params['dir_target'],
+                                                baseline = result_x.params['baseline'],
+                                                start_anti = result_x.params['start_anti'],
+                                                a_anti = result_x.params['a_anti'],
+                                                latency = result_x.params['latency'],
+                                                ramp_pursuit = result_x.params['ramp_pursuit'],
+                                                horizontal_shift = result_x.params['horizontal_shift'],
+                                                steady_state = result_x.params['steady_state'],
+                                                allow_baseline = result_x.params['allow_baseline'],
+                                                allow_horizontalShift = result_x.params['allow_horizontalShift'])
+                            eq_y = ANEMO.Equation.fct_velocity_sigmo(
+                                                x = inde_var_y['x'],
+                                                t_0 = result_y.params['t_0'],
+                                                t_end = result_y.params['t_end'],
+                                                dir_target = result_y.params['dir_target'],
+                                                baseline = result_y.params['baseline'],
+                                                start_anti = result_y.params['start_anti'],
+                                                a_anti = result_y.params['a_anti'],
+                                                latency = result_y.params['latency'],
+                                                ramp_pursuit = result_y.params['ramp_pursuit'],
+                                                horizontal_shift = result_y.params['horizontal_shift'],
+                                                steady_state = result_y.params['steady_state'],
+                                                allow_baseline = result_y.params['allow_baseline'],
+                                                allow_horizontalShift = result_y.params['allow_horizontalShift'])
+                            
                             
                         newResult = dict()
                         newResult['condition']                                   = cond
@@ -662,26 +770,76 @@ for idxSub, sub in enumerate(subjects):
                         newResult['time_x'], newResult['time_y']                 = time_x, time_y
                         newResult['velocity_x'], newResult['velocity_y']         = vel_x, vel_y
                         newResult['saccades']                                    = np.array(new_saccades)
+                        newResult['t_0']                                         = result_x.params['t_0'].value
+                        newResult['t_end']                                       = result_x.params['t_end'].value
 
                         newResult['dir_target_x'], newResult['dir_target_y']     = result_x.params['dir_target'].value, result_y.params['dir_target'].value
                         newResult['baseline_x'], newResult['baseline_y']         = result_x.params['baseline'].value, result_y.params['baseline'].value
-                        newResult['start_anti_x'], newResult['start_anti_y']     = result_x.params['start_anti'].value-300, result_y.params['start_anti'].value-300
-                        newResult['a_anti_x'], newResult['a_anti_y']             = result_x.params['a_anti'].value, result_y.params['a_anti'].value
-                        newResult['latency_x'], newResult['latency_y']           = result_x.params['latency'].value-300, result_y.params['latency'].value-300
-                        newResult['ramp_pursuit_x'], newResult['ramp_pursuit_y'] = result_x.params['ramp_pursuit'].value, result_y.params['ramp_pursuit'].value
-                        newResult['steady_state_x'], newResult['steady_state_y'] = result_x.params['steady_state'].value, result_y.params['steady_state'].value
-#                         newResult['a_pur_x'], newResult['a_pur_y']               = result_x.params['a_pur'].value, result_y.params['a_pur'].value
+                        newResult['aSPon_x'], newResult['aSPon_y']               = result_x.params['start_anti'].value-300, result_y.params['start_anti'].value-300
+                        newResult['aSPv_slope_x'], newResult['aSPv_slope_y']     = result_x.params['a_anti'].value, result_y.params['a_anti'].value
+                        newResult['SPacc_x'], newResult['SPacc_y']               = result_x.params['ramp_pursuit'].value, result_y.params['ramp_pursuit'].value
+                        newResult['SPss_x'], newResult['SPss_y']                 = result_x.params['steady_state'].value, result_y.params['steady_state'].value
                         newResult['do_whitening_x'], newResult['do_whitening_y'] = result_x.params['do_whitening'].value, result_y.params['do_whitening'].value
 
                         if equation=='sigmoid':
-                            newResult['horizontal_shift_x'], newResult['horizontal_shift_y'] = result_x.params['horizontal_shift'].value, result_y.params['horizontal_shift'].value
+                            newResult['aSPoff_x']         = np.round(result_x.params['latency'].value) 
+                            newResult['aSPoff_y']         = np.round(result_y.params['latency'].value) 
+
+                            _, idx_aSPoff = closest(time, newResult['aSPoff_x'])
+                            vel_at_latency = eq_x[idx_aSPoff] + (newResult['SPss_x']-eq_x[idx_aSPoff])*0.05   
+                            vel, idx = closest(eq_x[idx_aSPoff:], vel_at_latency)   
+
+                            newResult['SPlat_x']          = time_x[idx+idx_aSPoff]
+                            newResult['aSPv_x']           = eq_x[idx_aSPoff]
+                            newResult['horiz_shift_x']    = result_x.params['horizontal_shift'].value 
+
+                            _, idx_aSPoff = closest(time, newResult['aSPoff_y'])
+                            vel_at_latency = eq_y[idx_aSPoff] + (newResult['SPss_y']-eq_y[idx_aSPoff])*0.05   
+                            vel, idx = closest(eq_y[idx_aSPoff:], vel_at_latency)   
+
+                            newResult['SPlat_y']          = time_y[idx+idx_aSPoff]
+                            newResult['aSPv_y']           = eq_y[idx_aSPoff]
+                            newResult['horiz_shift_y']    = result_y.params['horizontal_shift'].value 
+
+                            newResult['horizontal_shift_x'] = result_x.params['horizontal_shift'].value
+                            newResult['horizontal_shift_y'] = result_y.params['horizontal_shift'].value
                             newResult['allow_baseline'] = allow_baseline
                             newResult['allow_horizontalShift'] = allow_horizontalShift
-                            newResult['allow_acceleration'] = allow_acceleration
-                        else:
+                            
+                        elif equation=='linear':
+                            newResult['SPlat_x']          = np.round(result_x.params['latency'].value)
+                            newResult['SPlat_y']          = np.round(result_y.params['latency'].value)
+
+                            _, idx_latency = closest(time, newResult['SPlat_x'])
+                            newResult['aSPv_x']           = eq_x[idx_latency]
+
+                            _, idx_latency = closest(time, newResult['SPlat_y'])
+                            newResult['aSPv_y']           = eq_y[idx_latency]
+
                             newResult['fit_steadyState'] = fit_steadyState
-                            
-                            
+
+                        elif equation=='nonlinear':
+                            newResult['aSPoff_x']         = np.round(result_x.params['anti_offset'].value)  
+                            newResult['aSPoff_y']         = np.round(result_y.params['anti_offset'].value)  
+
+                            _, idx_aSPoff = closest(time, newResult['aSPoff_x'])
+                            vel_at_latency = eq_x[idx_aSPoff] + (newResult['SPss_x']-eq_x[idx_aSPoff])*0.05   
+                            vel, idx = closest(eq_x[idx_aSPoff:], vel_at_latency)   
+
+                            newResult['SPlat_x']          = time_x[idx+idx_aSPoff]
+                            newResult['aSPv_x']           = eq_x[idx_aSPoff]
+                            newResult['horiz_shift_x']    = result_x.params['horizontal_shift'].value 
+
+                            _, idx_aSPoff = closest(time, newResult['aSPoff_y'])
+                            vel_at_latency = eq_y[idx_aSPoff] + (newResult['SPss_y']-eq_y[idx_aSPoff])*0.05   
+                            vel, idx = closest(eq_y[idx_aSPoff:], vel_at_latency)   
+
+                            newResult['SPlat_y']          = time_y[idx+idx_aSPoff]
+                            newResult['aSPv_y']           = eq_y[idx_aSPoff]
+                            newResult['horiz_shift_y']    = result_y.params['horizontal_shift'].value 
+
+                            newResult['allow_baseline'] = result_x.params['allow_baseline']
+
                         newResult['aic_x'], newResult['aic_y']                   = result_x.aic, result_y.aic
                         newResult['bic_x'], newResult['bic_y']                   = result_x.bic, result_y.bic
                         newResult['chisqr_x'], newResult['chisqr_y']             = result_x.chisqr, result_y.chisqr
@@ -698,13 +856,7 @@ for idxSub, sub in enumerate(subjects):
                         target_time = velocities[tg_vel[trial]]['t']*1000
                         target_vel  = velocities[tg_vel[trial]]['v']
                         
-                        f = plotFig(trial, target_time, target_vel, type_v, type_h,
-                            newResult['time_y'], newResult['velocity_y'], eq_y, newResult['start_anti_y'], newResult['latency_y'],
-                            newResult['time_x'], newResult['velocity_x'], eq_x, newResult['start_anti_x'], newResult['latency_x'],
-                            show=showPlots)
-                            
-                        pdf.savefig(f)
-                        plt.close(f)
+                        
 
                         qCtrl = dict()
                         qCtrl['sub']            = sub
@@ -730,13 +882,37 @@ for idxSub, sub in enumerate(subjects):
                             qCtrl['good_fit']       = np.nan
                             qCtrl['discard_reason'] = np.nan
 
+                        if equation == 'nonlinear':
+                            f = plotFig2(trial, target_time, target_vel, type_v, type_h,
+                                        newResult['time_y'], newResult['velocity_y'], eq_y, newResult['aSPon_y'], newResult['aSPoff_y'],
+                                        newResult['time_x'], newResult['velocity_x'], eq_x, newResult['aSPon_x'], newResult['aSPoff_x'],
+                                        show=False)
+                        elif equation=='sigmoid':
+                            f = plotFig2(trial, target_time, target_vel, type_v, type_h,
+                                        newResult['time_y'], newResult['velocity_y'], eq_y, newResult['aSPon_y'], newResult['aSPoff_y'],
+                                        newResult['time_x'], newResult['velocity_x'], eq_x, newResult['aSPon_x'], newResult['aSPoff_x'],
+                                        show=False)
+                        elif equation=='linear':
+                            f = plotFig2(trial, target_time, target_vel, type_v, type_h,
+                                        newResult['time_y'], newResult['velocity_y'], eq_y, newResult['aSPon_y'], newResult['SPlat_y'],
+                                        newResult['time_x'], newResult['velocity_x'], eq_x, newResult['aSPon_x'], newResult['SPlat_x'],
+                                        show=False)
+                        
+                        if newResult['rmse_x'] < 10:
+                            # print('good')
+                            pdf.savefig(f)
+                        else:
+                            badFitspdf.savefig(f)
+                            print('bad')
+
+                        plt.close(f)
+
                     # save trial's fit data to a dataframe
                     paramsSub = pd.concat([paramsSub, pd.DataFrame([newResult], columns=newResult.keys())], ignore_index=True)
                     qualityCtrl = pd.concat([qualityCtrl, pd.DataFrame([qCtrl], columns=qCtrl.keys())], ignore_index=True)
 
-            nanOnsetpdf.close()
-            nanOverallpdf.close()
-            nanSequencepdf.close()
+            badTrialspdf.close()
+            badFitspdf.close()
 
             pdf.close()
             plt.close('all')

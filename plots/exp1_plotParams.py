@@ -106,9 +106,9 @@ for sub in subjects:
 
 # read LME results from csv generated on R
 lmm_dir = "{}/exp1/LMM".format(output_folder)
-lme_raneff     = pd.read_csv('{}/lme_biasSpeed_randomEffects2.csv'.format(lmm_dir))
-lme_fixeffAnti = pd.read_csv('{}/lme_biasSpeed_fixedeffectsAnti.csv'.format(lmm_dir))
-lme_fixeffVGP  = pd.read_csv('{}/lme_biasSpeed_fixedeffectsVGP2.csv'.format(lmm_dir))
+lme_raneff     = pd.read_csv('{}/exp1_lmm_randomEffects.csv'.format(lmm_dir))
+lme_fixeffAnti = pd.read_csv('{}/exp1_lmm_fixedeffectsAnti.csv'.format(lmm_dir))
+lme_fixeffVGP  = pd.read_csv('{}/exp1_lmm_fixedeffectsVGP.csv'.format(lmm_dir))
 
 lme_fixeffAnti.at[0,'Unnamed: 0'] = 'Intercept'
 lme_fixeffVGP.at[0,'Unnamed: 0']  = 'Intercept'
@@ -169,16 +169,8 @@ for p in anticipParams:
     ax2.set_xticks([])
 
     plt.tight_layout()
-    plt.savefig('{}/biasSpeed_group_{}.pdf'.format(output_folder, p[1]))
-    plt.savefig('{}/biasSpeed_group_{}.png'.format(output_folder, p[1]))
-
-# plt.close('all')   
-# plt.figure()
-# plt.subplot(1,2,1)
-# sns.boxplot(data=allSubsData, x='cond_num', y='latency_x', hue='trial_vel')
-# plt.subplot(1,2,2)
-# sns.boxplot(data=allSubsData, x='cond_num', y='ramp_pursuit_x', hue='trial_vel')
-# plt.show()
+    plt.savefig('{}/exp1_group_{}.pdf'.format(output_folder, p[1]))
+    plt.savefig('{}/exp1_group_{}.png'.format(output_folder, p[1]))
 
 visParams = [['latency_x','Latency', [75,125], 'Horizontal SPlat (ms)'],
              ['ramp_pursuit_x', 'Pursuit Acceleration', [35,150], 'Horizontal SPacc (°/s\N{SUPERSCRIPT TWO})'],
@@ -254,5 +246,5 @@ for p in visParams:
    
     plt.tight_layout()
     
-    plt.savefig('{}/biasSpeed_group_{}.pdf'.format(output_folder, p[1]))
-    plt.savefig('{}/biasSpeed_group_{}.png'.format(output_folder, p[1]))
+    plt.savefig('{}/exp1_group_{}.pdf'.format(output_folder, p[1]))
+    plt.savefig('{}/exp1_group_{}.png'.format(output_folder, p[1]))
