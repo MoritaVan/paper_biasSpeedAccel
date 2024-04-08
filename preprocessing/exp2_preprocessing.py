@@ -307,7 +307,7 @@ for idxSub, sub in enumerate(subjects):
             param_exp['dir_target'][0] = [1 if (item == 1) | (item==2) else -1 for item in tg_dir]
             
             param_exp['N_trials'] = len(data)
-            param_exp['N_trials'] = 30 # for test only
+            # param_exp['N_trials'] = 30 # for test only
 
             # creates an ANEMO instance
             A   = ANEMO(param_exp)
