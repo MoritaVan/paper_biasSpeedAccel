@@ -216,8 +216,8 @@ velocities = {
 showPlots   = 0 
 manualCheck = 0
 
-equation = 'linear'
-# equation = 'nonlinear'
+# equation = 'linear'
+equation = 'nonlinear'
 # equation = 'sigmoid'
 print('\n\t\tEquation:\t',equation.upper(),'\n')
 
@@ -759,7 +759,7 @@ for idxSub, sub in enumerate(subjects):
 
                         newResult['dir_target_x'], newResult['dir_target_y']     = result_x.params['dir_target'].value, result_y.params['dir_target'].value
                         newResult['baseline_x'], newResult['baseline_y']         = result_x.params['baseline'].value, result_y.params['baseline'].value
-                        newResult['aSPon_x'], newResult['aSPon_y']               = result_x.params['start_anti'].value-300, result_y.params['start_anti'].value-300
+                        newResult['aSPon_x'], newResult['aSPon_y']               = result_x.params['start_anti'].value, result_y.params['start_anti'].value
                         newResult['aSPv_slope_x'], newResult['aSPv_slope_y']     = result_x.params['a_anti'].value, result_y.params['a_anti'].value
                         newResult['SPacc_x'], newResult['SPacc_y']               = result_x.params['ramp_pursuit'].value, result_y.params['ramp_pursuit'].value
                         newResult['SPss_x'], newResult['SPss_y']                 = result_x.params['steady_state'].value, result_y.params['steady_state'].value

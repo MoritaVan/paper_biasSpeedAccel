@@ -147,7 +147,6 @@ for sub in subjects:
 
     # transform into a dataframe and save into sXX_biasSpeed_smoothPursuitData.h5
     tempDF['sub'] = [sub for _ in range(len(tempDF))]
-    tempDF['aSPv'] = tempDF['aSPv_slope']*(tempDF['SPlat']-tempDF['aSPon'])/1000
     newTempDF = tempDF[tempDF.columns.intersection(keys)]
 
     params = pd.concat([params, newTempDF], ignore_index=True)

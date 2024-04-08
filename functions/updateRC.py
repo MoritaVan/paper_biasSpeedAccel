@@ -4,7 +4,7 @@ def fontsizeDict(small:int=10, medium:int=12):
 
     return {"font.size":SMALL_SIZE,
             "axes.titlesize":MEDIUM_SIZE,
-            "axes.labelseize":MEDIUM_SIZE,
+            "axes.labelsize":MEDIUM_SIZE,
             "xtick.labelsize":SMALL_SIZE,
             "ytick.labelsize":SMALL_SIZE,
             "legend.fontsize":SMALL_SIZE,
