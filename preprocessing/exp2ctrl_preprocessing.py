@@ -502,30 +502,37 @@ for idxSub, sub in enumerate(subjects):
                         # print('classical latency: {:+.2f}, max: {:+.2f}, anti: {:+.2f}'.format(classic_lat_y, classic_max_y, classic_ant_y))
                         classic_ant_y = classic_ant_y if not np.isnan(classic_ant_y) else 0.5 # acceleration threshold, to avoid local minima when doing the fit
                         
+                        # test: change trial's direction to UR
+                        if param_exp['dir_target'][1][trial] == -1: vel_x = vel_x*-1
+                        if param_exp['dir_target'][0][trial] == -1: vel_y = vel_y*-1
+
                         if equation=='linear':
                             param_fit_x, inde_var_x = Fit.generation_param_fit(equation = 'fct_velocity_line',
-                                                                dir_target    = param_exp['dir_target'][1][trial],
+                                                                # dir_target    = param_exp['dir_target'][1][trial],
+                                                                dir_target    = 1,
                                                                 trackertime   = time_x,
                                                                 TargetOn      = 0,
                                                                 StimulusOf    = time_x[0],
                                                                 saccades      = new_saccades,
                                                                 value_latency = classic_lat_x,
-                                                                value_maxi    = classic_max_x,
+                                                                value_maxi    = velocities[tg_vel[trial]]['v'][0],
                                                                 value_anti    = classic_ant_x*5)
                             param_fit_y, inde_var_y = Fit.generation_param_fit(equation = 'fct_velocity_line',
-                                                                dir_target    = param_exp['dir_target'][0][trial],
+                                                                # dir_target    = param_exp['dir_target'][0][trial],
+                                                                dir_target    = 1,
                                                                 trackertime   = time_y,
                                                                 TargetOn      = 0,
                                                                 StimulusOf    = time_y[0],
                                                                 saccades      = new_saccades,
                                                                 value_latency = classic_lat_y,
-                                                                value_maxi    = classic_max_y,
+                                                                value_maxi    = velocities[tg_vel[trial]]['v'][0],
                                                                 value_anti    = classic_ant_y*5)
                             
                             result_x = Fit.Fit_trial(vel_x,
                                                     equation      = 'fct_velocity_line',
                                                     data_x        = pos_x,
-                                                    dir_target    = param_exp['dir_target'][1][trial],
+                                                    # dir_target    = param_exp['dir_target'][1][trial],
+                                                    dir_target    = 1,
                                                     trackertime   = list(inde_var_x['x']),
                                                     TargetOn      = 0,
                                                     StimulusOf    = time_x[0],
@@ -535,14 +542,15 @@ for idxSub, sub in enumerate(subjects):
                                                     param_fit     = param_fit_x,
                                                     inde_vars     = inde_var_x,
                                                     value_latency = classic_lat_x,
-                                                    value_steady_state = classic_max_x,
+                                                    value_steady_state = velocities[tg_vel[trial]]['v'][0],
                                                     value_anti    = classic_ant_x*5,
                                                     fit_steadyState = fit_steadyState,
                                                     )
                             result_y = Fit.Fit_trial(vel_y,
                                                     equation      = 'fct_velocity_line',
                                                     data_x        = pos_y,
-                                                    dir_target    = param_exp['dir_target'][0][trial],
+                                                    # dir_target    = param_exp['dir_target'][0][trial],
+                                                    dir_target    = 1,
                                                     trackertime   = list(inde_var_y['x']),
                                                     TargetOn      = 0,
                                                     StimulusOf    = time_y[0],
@@ -552,7 +560,7 @@ for idxSub, sub in enumerate(subjects):
                                                     param_fit     = param_fit_y,
                                                     inde_vars     = inde_var_y,
                                                     value_latency = classic_lat_y,
-                                                    value_steady_state = classic_max_y,
+                                                    value_steady_state = velocities[tg_vel[trial]]['v'][0],
                                                     value_anti    = classic_ant_y*5,
                                                     fit_steadyState = fit_steadyState,
                                                     )
@@ -581,28 +589,31 @@ for idxSub, sub in enumerate(subjects):
                                                         fit_steadyState = fit_steadyState)
                         elif equation=='nonlinear':
                             param_fit_x, inde_var_x = Fit.generation_param_fit(equation = 'fct_velocity_antiSigmo',
-                                                                dir_target    = param_exp['dir_target'][1][trial],
+                                                                # dir_target    = param_exp['dir_target'][1][trial],
+                                                                dir_target    = 1,
                                                                 trackertime   = time_x,
                                                                 TargetOn      = 0,
                                                                 StimulusOf    = time_x[0],
                                                                 saccades      = new_saccades,
                                                                 value_latency = classic_lat_x,
-                                                                value_maxi    = classic_max_x,
+                                                                value_maxi    = velocities[tg_vel[trial]]['v'][0],
                                                                 value_anti    = classic_ant_x*5)
                             param_fit_y, inde_var_y = Fit.generation_param_fit(equation = 'fct_velocity_antiSigmo',
-                                                                dir_target    = param_exp['dir_target'][0][trial],
+                                                                # dir_target    = param_exp['dir_target'][0][trial],
+                                                                dir_target    = 1,
                                                                 trackertime   = time_y,
                                                                 TargetOn      = 0,
                                                                 StimulusOf    = time_y[0],
                                                                 saccades      = new_saccades,
                                                                 value_latency = classic_lat_y,
-                                                                value_maxi    = classic_max_y,
+                                                                value_maxi    = velocities[tg_vel[trial]]['v'][0],
                                                                 value_anti    = classic_ant_y*5)
                             
                             result_x = Fit.Fit_trial(vel_x,
                                                     equation      = 'fct_velocity_antiSigmo',
                                                     data_x        = pos_x,
-                                                    dir_target    = param_exp['dir_target'][1][trial],
+                                                    # dir_target    = param_exp['dir_target'][1][trial],
+                                                    dir_target    = 1,
                                                     trackertime   = list(inde_var_x['x']),
                                                     TargetOn      = 0,
                                                     StimulusOf    = time_x[0],
@@ -612,14 +623,15 @@ for idxSub, sub in enumerate(subjects):
                                                     param_fit     = param_fit_x,
                                                     inde_vars     = inde_var_x,
                                                     value_latency = classic_lat_x,
-                                                    value_steady_state = classic_max_x,
+                                                    value_steady_state = velocities[tg_vel[trial]]['v'][0],
                                                     value_anti    = classic_ant_x*5,
                                                     allow_baseline = True,
                                                     )
                             result_y = Fit.Fit_trial(vel_y,
                                                     equation      = 'fct_velocity_antiSigmo',
                                                     data_x        = pos_y,
-                                                    dir_target    = param_exp['dir_target'][0][trial],
+                                                    # dir_target    = param_exp['dir_target'][0][trial],
+                                                    dir_target    = 1,
                                                     trackertime   = list(inde_var_y['x']),
                                                     TargetOn      = 0,
                                                     StimulusOf    = time_y[0],
@@ -629,7 +641,7 @@ for idxSub, sub in enumerate(subjects):
                                                     param_fit     = param_fit_y,
                                                     inde_vars     = inde_var_y,
                                                     value_latency = classic_lat_y,
-                                                    value_steady_state = classic_max_y,
+                                                    value_steady_state = velocities[tg_vel[trial]]['v'][0],
                                                     value_anti    = classic_ant_y*5,
                                                     allow_baseline = True,
                                                     )
@@ -663,28 +675,31 @@ for idxSub, sub in enumerate(subjects):
                         
                         elif equation=='sigmoid':
                             param_fit_x, inde_var_x = Fit.generation_param_fit(equation = 'fct_velocity_sigmo',
-                                                                dir_target    = param_exp['dir_target'][1][trial],
+                                                                # dir_target    = param_exp['dir_target'][1][trial],
+                                                                dir_target    = 1,
                                                                 trackertime   = time_x,
                                                                 TargetOn      = 0,
                                                                 StimulusOf    = time_x[0],
                                                                 saccades      = new_saccades,
                                                                 value_latency = classic_lat_x,
-                                                                value_maxi    = classic_max_x,
+                                                                value_maxi    = velocities[tg_vel[trial]]['v'][0],
                                                                 value_anti    = classic_ant_x*5)
                             param_fit_y, inde_var_y = Fit.generation_param_fit(equation = 'fct_velocity_sigmo',
-                                                                dir_target    = param_exp['dir_target'][0][trial],
+                                                                # dir_target    = param_exp['dir_target'][0][trial],
+                                                                dir_target    = 1,
                                                                 trackertime   = time_y,
                                                                 TargetOn      = 0,
                                                                 StimulusOf    = time_y[0],
                                                                 saccades      = new_saccades,
                                                                 value_latency = classic_lat_y,
-                                                                value_maxi    = classic_max_y,
+                                                                value_maxi    = velocities[tg_vel[trial]]['v'][0],
                                                                 value_anti    = classic_ant_y*5)
                             
                             result_x = Fit.Fit_trial(vel_x,
                                                     equation      = 'fct_velocity_sigmo',
                                                     data_x        = pos_x,
-                                                    dir_target    = param_exp['dir_target'][1][trial],
+                                                    # dir_target    = param_exp['dir_target'][1][trial],
+                                                    dir_target    = 1,
                                                     trackertime   = list(inde_var_x['x']),
                                                     TargetOn      = 0,
                                                     StimulusOf    = time_x[0],
@@ -694,14 +709,15 @@ for idxSub, sub in enumerate(subjects):
                                                     param_fit     = param_fit_x,
                                                     inde_vars     = inde_var_x,
                                                     value_latency = classic_lat_x,
-                                                    value_steady_state = classic_max_x,
+                                                    value_steady_state = velocities[tg_vel[trial]]['v'][0],
                                                     value_anti    = classic_ant_x*5,
                                                     allow_baseline = True,
                                                     )
                             result_y = Fit.Fit_trial(vel_y,
                                                     equation      = 'fct_velocity_sigmo',
                                                     data_x        = pos_y,
-                                                    dir_target    = param_exp['dir_target'][0][trial],
+                                                    # dir_target    = param_exp['dir_target'][0][trial],
+                                                    dir_target    = 1,
                                                     trackertime   = list(inde_var_y['x']),
                                                     TargetOn      = 0,
                                                     StimulusOf    = time_y[0],
@@ -711,7 +727,7 @@ for idxSub, sub in enumerate(subjects):
                                                     param_fit     = param_fit_y,
                                                     inde_vars     = inde_var_y,
                                                     value_latency = classic_lat_y,
-                                                    value_steady_state = classic_max_y,
+                                                    value_steady_state = velocities[tg_vel[trial]]['v'][0],
                                                     value_anti    = classic_ant_y*5,
                                                     allow_baseline = True,
                                                     )
@@ -749,7 +765,7 @@ for idxSub, sub in enumerate(subjects):
                         newResult = dict()
                         newResult['condition']                                   = cond
                         newResult['trial']                                       = trial
-                        newResult['target_dir']                                  = trialType_txt
+                        newResult['original_target_dir']                         = trialType_txt
                         newResult['trial_velocity']                              = tg_vel[trial]
                         newResult['time_x'], newResult['time_y']                 = time_x, time_y
                         newResult['velocity_x'], newResult['velocity_y']         = vel_x, vel_y

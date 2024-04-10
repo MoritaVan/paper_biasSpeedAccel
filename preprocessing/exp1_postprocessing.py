@@ -57,61 +57,58 @@ keys2save = ['subject','condition', 'trial', 'tg_dir', 'tg_vel', 'time',
 float_keys = ['posDeg_x', 'posDeg_y', 'velocity_x', 'velocity_y']
 int_keys   = ['trial', 'time']
 
-# data = dict()
-# for sub in subjects:
-#     print('Subject:',sub)
+data = pd.DataFrame([], columns=keys2save)
+for sub in subjects:
+    print('Subject:',sub)
     
-#     temp = pd.DataFrame()
-#     for cond in conditions:
-#         print(cond)
-#         # read data
-#         h5_rawfile = '{sub}/{sub}_{cond}_rawData_no-SPss.h5'.format(sub=sub, cond=cond)
-#         temp  = pd.read_hdf(h5_rawfile,'raw/')
+    temp = pd.DataFrame()
+    for cond in conditions:
+        print(cond)
+        # read data
+        h5_rawfile = '{sub}/{sub}_{cond}_rawData_nonlinear.h5'.format(sub=sub, cond=cond)
+        temp  = pd.read_hdf(h5_rawfile,'raw/')
 
-#         # get bad data
-#         h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_no-SPss_final.h5'.format(sub=sub, cond=cond)
-#         cq        = pd.read_hdf(h5_qcfile, 'data/')
+        # get bad data
+        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_nonlinear_final.h5'.format(sub=sub, cond=cond) 
+        cq        = pd.read_hdf(h5_qcfile, 'data/')
 
-#         for index, row in cq.iterrows():
-#             if (row['keep_trial'] == 0) or (row['good_fit'] == 0): # check if good trial
-#                 temp.drop(temp[temp['trial']==row['trial']].index, inplace=True)
+        for index, row in cq.iterrows():
+            if (row['keep_trial'] == 0) or (row['good_fit'] == 0): # check if good trial
+                temp.drop(temp[temp['trial']==row['trial']].index, inplace=True)
         
-#         temp.reset_index(inplace=True)
+        temp.reset_index(inplace=True)
         
-#         if cond=='p50': # velocity was wrongly coded for this condition
-#             temp['velocity'] = ['HS' if x=='LS' else 'LS' for x in temp['velocity']]
+        if cond=='p50': # velocity was wrongly coded for this condition
+            temp['velocity'] = ['HS' if x=='LS' else 'LS' for x in temp['velocity']]
                 
-#         # transform data in a new dataframe
-#         for index, row in temp.iterrows():
-#             temp.loc[index]['posDeg_x'][temp.loc[index]['posDeg_x'] < screen_width_deg*.05]  = np.nan
-#             temp.loc[index]['posDeg_x'][temp.loc[index]['posDeg_x'] > screen_width_deg*.95]  = np.nan
-#             temp.loc[index]['posDeg_y'][temp.loc[index]['posDeg_y'] < screen_height_deg*.05] = np.nan
-#             temp.loc[index]['posDeg_y'][temp.loc[index]['posDeg_y'] > screen_height_deg*.95] = np.nan
+        # transform data in a new dataframe
+        for index, row in temp.iterrows():
+            temp.loc[index]['posDeg_x'][temp.loc[index]['posDeg_x'] < screen_width_deg*.05]  = np.nan
+            temp.loc[index]['posDeg_x'][temp.loc[index]['posDeg_x'] > screen_width_deg*.95]  = np.nan
+            temp.loc[index]['posDeg_y'][temp.loc[index]['posDeg_y'] < screen_height_deg*.05] = np.nan
+            temp.loc[index]['posDeg_y'][temp.loc[index]['posDeg_y'] > screen_height_deg*.95] = np.nan
 
-#             subj     = np.array(np.arange(len(row['time']))).astype(object)
-#             condi    = np.array(np.arange(len(row['time']))).astype(object)
-#             trial    = np.array(np.arange(len(row['time'])))
-#             tgdir    = np.array(np.arange(len(row['time']))).astype(object)
-#             tgvel    = np.array(np.arange(len(row['time']))).astype(object)
-#             subj[:]  = sub
-#             condi[:] = row['condition']
-#             trial[:] = row['trial']
-#             tgdir[:] = row['direction']
-#             tgvel[:] = row['velocity']
+            subj     = np.array(np.arange(len(row['time']))).astype(object)
+            condi    = np.array(np.arange(len(row['time']))).astype(object)
+            trial    = np.array(np.arange(len(row['time'])))
+            tgdir    = np.array(np.arange(len(row['time']))).astype(object)
+            tgvel    = np.array(np.arange(len(row['time']))).astype(object)
+            subj[:]  = sub
+            condi[:] = row['condition']
+            trial[:] = row['trial']
+            tgdir[:] = row['direction']
+            tgvel[:] = row['velocity']
 
-#             newData = np.vstack((subj, condi,trial,tgdir,tgvel,row['time'],
-#                         row['posDeg_x'],row['posDeg_y'],row['velocity_x'],row['velocity_y'])).T
+            newData = np.vstack((subj, condi,trial,tgdir,tgvel,row['time'],
+                        row['posDeg_x'],row['posDeg_y'],row['velocity_x'],row['velocity_y'])).T
 
-#             if index == 0:
-#                 data = pd.DataFrame(newData, columns=keys2save)
-#             else:
-#                 data = data.append(pd.DataFrame(newData, columns=keys2save), ignore_index = True)
+            data = pd.concat([data,pd.DataFrame(newData, columns=keys2save)], ignore_index = True)
 
-#         # cast data to correct format
-#         data[float_keys] = data[float_keys].astype(float)
-#         data[int_keys]   = data[int_keys].astype(int)
+        # cast data to correct format
+        data[float_keys] = data[float_keys].astype(float)
+        data[int_keys]   = data[int_keys].astype(int)
 
-#         data.to_hdf(h5_rawfile, 'rawFormatted')
+        data.to_hdf(h5_rawfile, 'rawFormatted')
 
             
 #%% read data
@@ -128,10 +125,10 @@ for sub in subjects:
 
     tempDF = pd.DataFrame()
     for cond in conditions:
-        h5_file = '{sub}/{sub}_{cond}_posFilter_no-SPss.h5'.format(sub=sub, cond=cond)
+        h5_rawfile = '{sub}/{sub}_{cond}_posFilter_nonlinear.h5'.format(sub=sub, cond=cond)
         temp_tmp  = pd.read_hdf(h5_file,'data/')
 
-        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_no-SPss_final.h5'.format(sub=sub, cond=cond)
+        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_nonlinear_final.h5'.format(sub=sub, cond=cond) 
         cq        = pd.read_hdf(h5_qcfile, 'data/')
 
         for index, row in cq.iterrows():
@@ -156,7 +153,7 @@ for sub in subjects:
             'SPacc','SPlat',]
     params[float_keys] = params[float_keys].astype(float)
 
-    h5_file = '{s}/{s}_biasSpeed_smoothPursuitData_no-SPss.h5'.format(s=sub)
+    h5_file = '{s}/{s}_biasSpeed_smoothPursuitData_nonlinear.h5'.format(s=sub)
     params.to_hdf(h5_file, 'data')
 
     del tempDF
