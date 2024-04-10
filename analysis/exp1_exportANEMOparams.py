@@ -15,7 +15,7 @@ import pandas as pd
 main_dir = "../data/biasSpeed"
 os.chdir(main_dir)
 
-output_folder = './outputs'
+output_folder = '../outputs/exp1'
 
 subjects   = ['s1', 's2', 's3']
 subNum     = [int(x[-1]) for x in subjects]
@@ -35,16 +35,16 @@ print("Reading Data")
 
 allSubsData = pd.DataFrame([])
 for sub in subjects:
-    h5_file = '{s}/{s}_biasSpeed_smoothPursuitData_no-SPss.h5'.format(s=sub)
+    h5_file = '{s}/{s}_biasSpeed_smoothPursuitData_nonlinear.h5'.format(s=sub)
     data_tmp =  pd.read_hdf(h5_file, 'data')
     data_tmp.reset_index(inplace=True)
     
     data_tmp['sub'] = np.ones(len(data_tmp)) * int(sub[-1])
     data_tmp['sub_txt'] = sub
-    data_tmp['cond_num'] = [float(x[1:])/100 for x in data_tmp['cond']]
+    data_tmp['cond_num'] = [float(x[1:])/100 for x in data_tmp['condition']]
     
-    data_tmp.loc[data_tmp['SPacc'] > 250, 'SPacc']  = np.nan
-    data_tmp.loc[data_tmp['SPacc'] < -250, 'SPacc'] = np.nan
+    # data_tmp.loc[data_tmp['SPacc'] > 250, 'SPacc']  = np.nan
+    # data_tmp.loc[data_tmp['SPacc'] < -250, 'SPacc'] = np.nan
 
     data_tmp.loc[data_tmp['SPlat'] == data_tmp['aSPon']+1, 'aSPon'] = np.nan
 
