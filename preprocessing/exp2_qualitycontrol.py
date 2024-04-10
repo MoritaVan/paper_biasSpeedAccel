@@ -139,66 +139,66 @@ for sub in subjects:
             badFitsFile = '{}/qc/{}_{}_badFits_nonlinear.pdf'.format(outputFolder_plots, sub, cond)   
             data      = pd.read_hdf(h5_file, 'data/') 
             cq        = pd.read_hdf(h5_qcfile, 'data/')
+
+            badFitspdf      = PdfPages(badFitsFile)
+
+            f = plt.figure()
+            badFitspdf.savefig(f)
+
+            data.dropna(how='all', axis=0,subset=['trial_velocity'], inplace=True)
+
+            cq.reset_index(inplace=True)
+            cq_index = cq[cq['discard_reason'] == 'RMSE criteria'].index
+            cq.loc[cq_index,'good_fit']       = [np.nan] * len(cq_index)
+            cq.loc[cq_index,'discard_reason'] = [np.nan] * len(cq_index)
+            
+
+            for idx, row in data.iterrows():
+                idx_notnan = ~np.isnan(row['velocity_x'])
+                time_noNan = np.array(row.time_x[idx_notnan])
+                idx_res = (time_noNan>-200)&(time_noNan<200)
+                data.at[idx,'rmse_x_-200-200ms'] = np.sqrt(np.mean([x*x for x in row.residual_x[idx_res]]))
+
+                idx_notnan = ~np.isnan(row['velocity_y'])
+                time_noNan = np.array(row.time_y[idx_notnan])
+                idx_res = (time_noNan>-200)&(time_noNan<200)
+                data.at[idx,'rmse_y_-200-200ms'] = np.sqrt(np.mean([x*x for x in row.residual_y[idx_res]]))
+
+            rmse_x_threshold = data['rmse_x'].mean() + 2*data['rmse_x'].std()
+            rmse_y_threshold = data['rmse_y'].mean() + 2*data['rmse_y'].std()
+            rmse_x_threshold_fixWin = data['rmse_x_-200-200ms'].mean() + 2*data['rmse_x_-200-200ms'].std()
+            rmse_y_threshold_fixWin = data['rmse_y_-200-200ms'].mean() + 2*data['rmse_y_-200-200ms'].std()
+            print('RMSE_x thresh: ', rmse_x_threshold, rmse_x_threshold_fixWin)
+            print('RMSE_y thresh: ', rmse_y_threshold, rmse_y_threshold_fixWin)
+
+            for idx, row in data.iterrows():
+
+                if (row['rmse_x_-200-200ms'] > rmse_x_threshold_fixWin) | (row.rmse_x > rmse_x_threshold) | (row['rmse_y_-200-200ms'] > rmse_y_threshold_fixWin) | (row.rmse_y > rmse_y_threshold):#| (row.rmse_x > 1.5) | (row['rmse_-200-200ms'] > 1.5):
+                    print(row.trial)
+
+                    target_time = velocities[row.trial_velocity]['t']*1000
+                    target_vel  = velocities[row.trial_velocity]['v']
+                    f = plotFig2(row.trial, target_time, target_vel, 'U', 'R', # type_v, type_h,
+                                            row['time_y'], row['velocity_y'], row['fit_y'], row['aSPon_y'], row['aSPoff_y'],
+                                            row['time_x'], row['velocity_x'], row['fit_x'], row['aSPon_x'], row['aSPoff_x'],
+                                            show=False)
+                    badFitspdf.savefig(f)
+                    plt.close(f)
+
+                    cq_index = cq[cq.trial==row.trial].index[0]
+                    cq.at[cq_index,'good_fit'] = 0
+                    cq.at[cq_index,'discard_reason'] = 'RMSE criteria'
+
+
+            missingTrials = list(set(np.arange(1,nTrials[cond]+1,1)) - set(cq['trial']))
+            
+            for t in missingTrials:
+                cq = cq.append(pd.DataFrame([[sub,cond,t,0,np.nan,'missing?']], 
+                                            columns=['sub', 'condition', 'trial', 'keep_trial', 'good_fit', 'discard_reason']))
+            
+            badFitspdf.close()
+            
+            cq.to_hdf(h5_qcfile, 'data/')
         except:
             print('Error! \n Couldn\'t process {}, condition {}'.format(sub,cond))
             traceback.print_exc()
-
-        badFitspdf      = PdfPages(badFitsFile)
-
-        f = plt.figure()
-        badFitspdf.savefig(f)
-
-        data.dropna(how='all', axis=0,subset=['trial_velocity'], inplace=True)
-
-        cq.reset_index(inplace=True)
-        cq_index = cq[cq['discard_reason'] == 'RMSE criteria'].index
-        cq.loc[cq_index,'good_fit']       = [np.nan] * len(cq_index)
-        cq.loc[cq_index,'discard_reason'] = [np.nan] * len(cq_index)
-        
-
-        for idx, row in data.iterrows():
-            idx_notnan = ~np.isnan(row['velocity_x'])
-            time_noNan = np.array(row.time_x[idx_notnan])
-            idx_res = (time_noNan>-200)&(time_noNan<200)
-            data.at[idx,'rmse_x_-200-200ms'] = np.sqrt(np.mean([x*x for x in row.residual_x[idx_res]]))
-
-            idx_notnan = ~np.isnan(row['velocity_y'])
-            time_noNan = np.array(row.time_y[idx_notnan])
-            idx_res = (time_noNan>-200)&(time_noNan<200)
-            data.at[idx,'rmse_y_-200-200ms'] = np.sqrt(np.mean([x*x for x in row.residual_y[idx_res]]))
-
-        rmse_x_threshold = data['rmse_x'].mean() + 2*data['rmse_x'].std()
-        rmse_y_threshold = data['rmse_y'].mean() + 2*data['rmse_y'].std()
-        rmse_x_threshold_fixWin = data['rmse_x_-200-200ms'].mean() + 2*data['rmse_x_-200-200ms'].std()
-        rmse_y_threshold_fixWin = data['rmse_y_-200-200ms'].mean() + 2*data['rmse_y_-200-200ms'].std()
-        print('RMSE_x thresh: ', rmse_x_threshold, rmse_x_threshold_fixWin)
-        print('RMSE_y thresh: ', rmse_y_threshold, rmse_y_threshold_fixWin)
-
-        for idx, row in data.iterrows():
-
-            if (row['rmse_x_-200-200ms'] > rmse_x_threshold_fixWin) | (row.rmse_x > rmse_x_threshold) | (row['rmse_y_-200-200ms'] > rmse_y_threshold_fixWin) | (row.rmse_y > rmse_y_threshold):#| (row.rmse_x > 1.5) | (row['rmse_-200-200ms'] > 1.5):
-                print(row.trial)
-
-                target_time = velocities[row.trial_velocity]['t']*1000
-                target_vel  = velocities[row.trial_velocity]['v']
-                f = plotFig2(row.trial, target_time, target_vel, 'U', 'R', # type_v, type_h,
-                                        row['time_y'], row['velocity_y'], row['fit_y'], row['aSPon_y'], row['aSPoff_y'],
-                                        row['time_x'], row['velocity_x'], row['fit_x'], row['aSPon_x'], row['aSPoff_x'],
-                                        show=False)
-                badFitspdf.savefig(f)
-                plt.close(f)
-
-                cq_index = cq[cq.trial==row.trial].index[0]
-                cq.at[cq_index,'good_fit'] = 0
-                cq.at[cq_index,'discard_reason'] = 'RMSE criteria'
-
-
-        missingTrials = list(set(np.arange(1,nTrials[cond]+1,1)) - set(cq['trial']))
-        
-        for t in missingTrials:
-            cq = cq.append(pd.DataFrame([[sub,cond,t,0,np.nan,'missing?']], 
-                                        columns=['sub', 'condition', 'trial', 'keep_trial', 'good_fit', 'discard_reason']))
-        
-        badFitspdf.close()
-        
-        cq.to_hdf(h5_qcfile, 'data/')

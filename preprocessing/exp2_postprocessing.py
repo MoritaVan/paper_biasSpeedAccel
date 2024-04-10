@@ -48,7 +48,6 @@ conditions =   [
                 'Vd-75_Va-25'
                 ]
 
-equation = 'line'
 
 # %% Transform raw data 
 # (also save to the same file, under a different folder... 
@@ -68,11 +67,11 @@ for sub in subjects:
         print(cond)
         try:
             # read data
-            h5_rawfile = '{sub}/{sub}_{cond}_rawData.h5'.format(sub=sub, cond=cond)
+            h5_rawfile = '{sub}/{sub}_{cond}_rawData_nonlinear.h5'.format(sub=sub, cond=cond)
             temp  = pd.read_hdf(h5_rawfile,'raw/')
 
             # get bad data
-            h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_afterManualCtrl.h5'.format(sub=sub, cond=cond)
+            h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_nonlinear.h5'.format(sub=sub, cond=cond) 
             cq        = pd.read_hdf(h5_qcfile, 'data/')
 
             for index, row in cq.iterrows():
@@ -118,36 +117,29 @@ for sub in subjects:
 # the file for this analysis was generated within the preprocessing script
 # run if you don't have the sXX_4C_smoothPursuitData.h5 file
 
-keys = ['cond', 'trial', 'target_dir', 'trial_vel',
-        'velocity_model_x', 'velocity_model_y', 
-        'velocity_trad_x', 'velocity_trad_y', 
-        'start_anti_x', 'start_anti_y',
-        'ramp_pursuit_x', 'ramp_pursuit_y', 
-        'steady_state_x', 'steady_state_y',
-        'classic_lat_x', 'classic_lat_y',
-        'latency_x', 'latency_y']
-
+keys = ['sub','condition', 'trial', 'original_target_dir', 'trial_velocity',
+        'aSPv_x','aSPv_y', 
+        'aSPon_x','aSPon_y', 
+        'SPlat_x','SPlat_y',
+        'SPacc_x','SPacc_y',
+        'SPss_x','SPss_y']
+params = pd.DataFrame([], columns=keys)
 for sub in subjects:
     print('Subject:',sub)
 
     tempDF = pd.DataFrame()
     for cond in conditions:
         try:
-            h5_file = '{sub}/{sub}_{cond}_posFilter.h5'.format(sub=sub, cond=cond)
+            h5_file = '{sub}/{sub}_{cond}_posFilter_nonlinear.h5'.format(sub=sub, cond=cond)
             temp_tmp  = pd.read_hdf(h5_file,'data/')
 
-            h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_afterManualCtrl.h5'.format(sub=sub, cond=cond)
+            h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_nonlinear.h5'.format(sub=sub, cond=cond)
             cq        = pd.read_hdf(h5_qcfile, 'data/')
 
             for index, row in cq.iterrows():
                 if (row['keep_trial'] == 0) or (row['good_fit'] == 0): # check if good trial
                     temp_tmp.drop(temp_tmp[temp_tmp['trial']==row['trial']].index, inplace=True)
             temp_tmp.reset_index(inplace=True)
-
-
-            if equation=='line':
-                temp_tmp['new_latency_x'] = np.zeros(len(temp_tmp))
-                temp_tmp['new_latency_y'] = np.zeros(len(temp_tmp))
 
             tempDF = tempDF.append(temp_tmp, ignore_index=True)
         except Exception as e:
@@ -157,48 +149,15 @@ for sub in subjects:
     print('\t',tempDF.shape)
 
     # transform into a dataframe and save into sXX_4C_smoothPursuitData.h5
+    tempDF['sub'] = [sub for _ in range(len(tempDF))]
+    newTempDF = tempDF[tempDF.columns.intersection(keys)]
 
-    temp = np.empty((len(tempDF),len(keys))).astype(object)
-
-    mean_velocity_x = []
-    mean_velocity_y = []
-    slope_x = []
-    slope_y = []
-    for index,trial in tempDF.iterrows():
-#         print(trial)
-        x = [np.logical_and(t>0,t<=50) for t in trial['time_x']] # get the time points between 0 and 50 ms
-        mean_velocity_x.append(np.nanmean(trial['velocity_x'][x]))
-        mean_velocity_y.append(np.nanmean(trial['velocity_y'][x]))
-
-    temp[:,0]  = tempDF['condition']
-    temp[:,1]  = tempDF['trial']
-    temp[:,2]  = tempDF['target_dir']
-    temp[:,3]  = tempDF['trial_velocity']
-    temp[:,4]  = tempDF['a_anti_x']*(tempDF['latency_x']-tempDF['start_anti_x'])/1000
-    temp[:,5]  = tempDF['a_anti_y']*(tempDF['latency_y']-tempDF['start_anti_y'])/1000
-    temp[:,6]  = mean_velocity_x
-    temp[:,7]  = mean_velocity_y
-    temp[:,8]  = tempDF['start_anti_x']
-    temp[:,9]  = tempDF['start_anti_y']
-    temp[:,10]  = tempDF['ramp_pursuit_x']
-    temp[:,11] = tempDF['ramp_pursuit_y']
-    temp[:,12] = tempDF['steady_state_x']
-    temp[:,13] = tempDF['steady_state_y']
-    temp[:,14] = tempDF['classic_lat_x']
-    temp[:,15] = tempDF['classic_lat_y']
-    temp[:,16]  = tempDF['latency_x']
-    temp[:,17]  = tempDF['latency_y']
-
-    params = []
-    params = pd.DataFrame(temp, columns=keys)
-
-    float_keys = ['velocity_model_x', 'velocity_model_y', 
-            'velocity_trad_x', 'velocity_trad_y', 'start_anti_x', 'start_anti_y',
-            'ramp_pursuit_x', 'ramp_pursuit_y', 'steady_state_x', 'steady_state_y', 
-            'classic_lat_x', 'classic_lat_y','latency_x', 'latency_y']
+    params = pd.concat([params, newTempDF], ignore_index=True)
+    float_keys = ['aSPv_x', 'aSPon_x', 'SPacc_x','SPlat_x','SPss_x',
+                  'aSPv_y', 'aSPon_y', 'SPacc_y','SPlat_y','SPss_y']
     params[float_keys] = params[float_keys].astype(float)
 
-    h5_file = ''.join([str(sub),'/', str(sub), '_biasAccel_smoothPursuitData.h5'])
+    h5_file = ''.join([str(sub),'/', str(sub), '_biasAccel_smoothPursuitData_nonlinear.h5'])
     params.to_hdf(h5_file, 'data')
 
-    del tempDF, temp
+    del tempDF

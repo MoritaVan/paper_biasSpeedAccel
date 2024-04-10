@@ -69,7 +69,7 @@ for sub in subjects:
         temp  = pd.read_hdf(h5_rawfile,'raw/')
 
         # get bad data
-        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_nonlinear_final.h5'.format(sub=sub, cond=cond) 
+        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_nonlinear.h5'.format(sub=sub, cond=cond) 
         cq        = pd.read_hdf(h5_qcfile, 'data/')
 
         for index, row in cq.iterrows():
@@ -114,21 +114,22 @@ for sub in subjects:
 #%% read data
 # the file for this analysis was generated within the preprocessing script
 # run if you don't have the sXX_4C_smoothPursuitData.h5 file
-keys = ['sub','cond', 'trial', 'target_dir', 'trial_velocity',
+keys = ['sub','condition', 'trial', 'target_dir', 'trial_velocity',
         'aSPv', 
         'aSPon', 
         'SPlat',
-        'SPacc']
+        'SPacc',
+        'SPss']
 params = pd.DataFrame([], columns=keys)
 for sub in subjects:
     print('Subject:',sub)
 
     tempDF = pd.DataFrame()
     for cond in conditions:
-        h5_rawfile = '{sub}/{sub}_{cond}_posFilter_nonlinear.h5'.format(sub=sub, cond=cond)
+        h5_file = '{sub}/{sub}_{cond}_posFilter_nonlinear.h5'.format(sub=sub, cond=cond)
         temp_tmp  = pd.read_hdf(h5_file,'data/')
 
-        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_nonlinear_final.h5'.format(sub=sub, cond=cond) 
+        h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_nonlinear.h5'.format(sub=sub, cond=cond) 
         cq        = pd.read_hdf(h5_qcfile, 'data/')
 
         for index, row in cq.iterrows():
@@ -147,10 +148,8 @@ for sub in subjects:
     newTempDF = tempDF[tempDF.columns.intersection(keys)]
 
     params = pd.concat([params, newTempDF], ignore_index=True)
-    print(params.head())
-
     float_keys = ['aSPv', 'aSPon',
-            'SPacc','SPlat',]
+            'SPacc','SPlat','SPss']
     params[float_keys] = params[float_keys].astype(float)
 
     h5_file = '{s}/{s}_biasSpeed_smoothPursuitData_nonlinear.h5'.format(s=sub)
