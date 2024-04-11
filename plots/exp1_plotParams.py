@@ -39,9 +39,9 @@ output_folder = '../outputs/exp1'
 subjects   = ['s1', 's2', 's3']
 subNum     = [int(x[-1]) for x in subjects]
 
-colormaps = [ 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
-            ]
-colormaps = {sub : col for sub,col in zip(subNum,colormaps)}
+# colormaps = [ 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
+#             ]
+# colormaps = {sub : col for sub,col in zip(subNum,colormaps)}
 
 conditions =   [
                 'p0', 

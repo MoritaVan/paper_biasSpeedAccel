@@ -212,57 +212,12 @@ for sub in subjects:
         idx, closestSpeed = closest(twCond['speed'],meanTgSpeed_test)
         closestTw = twCond.at[idx,'time_window_size']
         if cond=='Va-100_V0-0':
-            tau = (meanTgSpeed_test-11)/22
+            tau = ((meanTgSpeed_test-11)/22)/2
         else:
-            tau = (meanTgSpeed_test-33)/-22
+            tau = ((meanTgSpeed_test-33)/-22)/2
         mean_tw_integration = mean_tw_integration.append(pd.DataFrame([[sub,cond,closestTw, tau, meanTgSpeed_test]], columns=keysMTWI))
 
 mean_tw_integration['integration_tw'] = mean_tw_integration['integration_tw'].astype(float)
-
-# fig = plt.figure(figsize=(5*4, 5*3))
-# idx=0
-# for sub in subjects:
-#     idx += 1
-#     data2plot = tw_integration[tw_integration['subject']==sub]
-# #     data2plot['integration_tw'] = [str(x) for x in data2plot['integration_tw']]
-    
-#     plt.subplot(4,5,idx)
-#     plt.title(sub)
-#     plt.ylim([0,100])
-#     sns.countplot(data=data2plot, x="integration_tw", hue='condition', order=timeWindows)
-    
-# plt.savefig('allSubs_temporalIntegrationWindow.pdf')
-
-# fig = plt.figure(figsize=(5*4, 5*3))
-# for sub in subjects:
-#     data2plot = tw_integration[tw_integration['subject']==sub].copy()
-#     data2plot.reset_index(inplace=True)
-    
-#     plt.subplot(4,5,int(sub[-2:]))
-#     plt.title(sub)
-#     sns.histplot(data=data2plot, x="tau", hue='condition', kde=True)
-#     # plt.xlim([-5,5])
-#     plt.ylim([0,50])
-# plt.savefig('allSubs_tau.pdf')
-
-# mean_tw_integration.reset_index(inplace=True)
-# fig = plt.figure(figsize=(5, 5))
-# data2plot = mean_tw_integration
-# plt.title('Average Temporal Integration Window')
-
-# sns.histplot(data=data2plot, x="integration_tw", hue='condition', kde=True)
-    
-# plt.savefig('mean_temporalIntegrationWindow.pdf')
-
-# fig = plt.figure(figsize=(5, 5))
-# data2plot = mean_tw_integration
-# plt.title('Average Tau')
-# # plt.ylim([0,100])
-# sns.histplot(data=data2plot, x="tau", hue='condition', kde=True)
-    
-# plt.savefig('mean_tau.pdf')
-
-
 
 keys2plot = ['sub', 'condition', 'meanAntiVel', 'meanPredTgVel']
 data2plot = pd.DataFrame([], columns=keys2plot)
@@ -270,7 +225,7 @@ for index, row in paramsFit.iterrows():
     for tg_speed in np.unique(row['targetSpeed_train']):
         idx = np.where(row['targetSpeed_train']==tg_speed)[0].astype(int)
         mean = np.mean(np.array(row['eyeSpeed_train'])[idx]) 
-        meanTg = np.nan
+        meanTg = float(tg_speed)
 #         meanTg = np.mean(np.array(row['targetSpeed_train_pred'])[idx])# pred values for cte vel???
         data2plot = data2plot.append(pd.DataFrame([[row['sub'], tg_speed, mean, meanTg]], columns=keys2plot))
     
@@ -282,40 +237,62 @@ for index, row in paramsFit.iterrows():
         
 data2plot.reset_index(inplace=True)
 
-colors = [
-    np.array([92, 224, 22])/255, # green Va
-    np.array([224, 80, 45])/255, # orange Vd
-    ]
-fig = plt.figure(figsize=(two_col*cm, 8*cm))
+cmap_blues = plt.get_cmap('Blues_r') 
+cmap_reds = plt.get_cmap('Reds_r') 
+
+blues2 = cmap_blues(np.linspace(0.2, .6, 3))
+reds2  = cmap_reds(np.linspace(0.2, .6, 2))
+colors100 = {
+    11: blues2[0],
+    22: blues2[1],
+    33: blues2[2],
+    13: reds2[0],
+    31: reds2[1],
+}
+
+# data2plot = data2plot[~data2plot['sub'].isin(['sub-08'])]
+# mean_tw_integration = mean_tw_integration[~mean_tw_integration['sub'].isin(['sub-08'])]
+
+dt_mean = data2plot.groupby(['condition']).mean().reset_index()
+dt_std  =  data2plot.groupby(['condition']).std().reset_index()
+dt_mean = dt_mean[dt_mean['condition'].isin([13,31])]
+dt_std  = dt_std[dt_std['condition'].isin([13,31])]
+
+fig = plt.figure(figsize=(two_col, 8*cm))
 ax = plt.subplot(1,2,1)
-dt = data2plot[data2plot['condition'].isin([13,31])]
-dt_mean = dt.groupby(['condition']).mean()
-dt_std =  dt.groupby(['condition']).std()
-sns.scatterplot(data=dt, x='meanPredTgVel',y='meanAntiVel',hue='condition', palette=sns.diverging_palette(20, 300, s=60, as_cmap=True), s=75, ax=ax)
-dt = data2plot[data2plot['condition'].isin([11,22,33])]
-dt.condition = dt.condition.astype(float)
-sns.scatterplot(data=dt, x='meanPredTgVel', y='meanAntiVel', 
-                hue='condition', palette=sns.dark_palette("#69d", as_cmap=True), s=75, ax=ax)
+plt.title('Predicted Target Speed')
+sns.scatterplot(data=data2plot, x='meanPredTgVel',y='meanAntiVel',hue='condition', palette=colors100, s=75, ax=ax)
 plt.errorbar(x=dt_mean['meanPredTgVel'],y=dt_mean['meanAntiVel'],
                         xerr=dt_std['meanPredTgVel'],yerr=dt_std['meanAntiVel'],
-                        ecolor=colors,elinewidth=3,fmt='none')
-# plt.plot(dt[''])
+                        ecolor=reds2,elinewidth=3,fmt='none')
+sns.regplot(data=data2plot[data2plot.condition.isin([11,22,33])],
+            x='meanPredTgVel', y='meanAntiVel', scatter=False)
+# plt.xlim([-50,80])
+plt.ylim([-1,9])
+plt.ylabel('Mean aSPv (°/s)')
+plt.xlabel('Target Speed (°/s)')
 
-# g = sns.JointGrid(data=dt, x=dt['meanPredTgVel'], y=dt['meanAntiVel'], 
-#                     hue='cond', palette=sns.diverging_palette(20, 300, s=60, as_cmap=True), height=9)
-# g.plot_joint(sns.scatterplot, s=75, alpha=1)
-# g.plot_marginals(sns.histplot, kde=True)
-# dt = data2plot[data2plot['cond'].isin([11,22,33])]
-# dt.cond = dt.cond.astype(float)
-# g = sns.JointGrid(data=dt, x=dt['meanPredTgVel'], y=dt['meanAntiVel'], 
-#                     hue='cond', palette=sns.dark_palette("#69d", as_cmap=True))
-# g.plot_joint(sns.scatterplot, s=75, alpha=1)
-# # sns.scatterplot(data=dt, x=dt['meanPredTgVel'], y=dt['meanAntiVel'], 
-# #                     hue='cond', palette=sns.dark_palette("#69d", as_cmap=True), s=75)
-# sns.regplot(data=dt, x=dt['meanPredTgVel'], y=dt['meanAntiVel'], marker='')
-# plt.xlim([-35,70])
-# plt.ylim([0,10])
-plt.savefig('allSubs_predictedTgVel_vs_antiVel.pdf')          
-# plt.savefig('allSubs_predictedTgVel_vs_antiVel.svg')          
+ax=plt.subplot(1,2,2)
+dt = mean_tw_integration.copy()
+dt.reset_index(inplace=True)
+dt['cond'] = [13 if 'Va' in x.condition else 31 for idx,x in dt.iterrows()]
+
+plt.title('Temporal Integration Window')
+sns.lineplot(data=dt, 
+             x="cond", y="tau", hue="subject",markers=True, palette = 'icefire')
+jitter = 0.5 * np.random.randn(len(dt))
+dt.cond = dt.cond + jitter
+sns.scatterplot(data=dt, 
+                x='cond',y='tau',hue='subject', palette='icefire', s=75)
+ax.set_xticks([13,31])
+ax.set_xticklabels(['vacc', 'vdec'])
+plt.xlim([0,40])
+plt.ylabel('Mean TIW (s)')
+plt.xlabel('Condition')
+plt.legend([])
+plt.tight_layout()
+
+plt.savefig('allSubs_predictedTgVel_vs_antiVel_outlier.png')          
+# plt.savefig('allSubs_predictedTgVel_vs_antiVel.pdf')          
 
 
