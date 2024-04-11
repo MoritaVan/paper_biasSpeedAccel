@@ -112,7 +112,8 @@ for sub in subjects:
 # the file for this analysis was generated within the preprocessing script
 # run if you don't have the sXX_4C_smoothPursuitData.h5 file
 
-keys = ['sub','condition', 'trial', 'target_dir', 'trial_vel',
+keys = [
+        'sub','condition', 'trial', 'original_target_dir', 'trial_velocity',
         'aSPv_x','aSPv_y', 
         'aSPon_x','aSPon_y', 
         'SPlat_x','SPlat_y',

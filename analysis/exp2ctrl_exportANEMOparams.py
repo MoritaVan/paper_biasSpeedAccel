@@ -58,8 +58,6 @@ for sub in subjects:
     data_tmp.loc[data_tmp['SPlat_x'] == data_tmp['aSPon_x']+1, 'aSPon_x'] = np.nan
     data_tmp.loc[data_tmp['SPlat_y'] == data_tmp['aSPon_y']+1, 'aSPon_y'] = np.nan
 
-    print(data_tmp.head())
-        
     allSubsData = pd.concat([allSubsData,data_tmp],ignore_index=True)
 
 # Linear Mixed effecs model
