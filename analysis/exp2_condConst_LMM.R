@@ -154,9 +154,9 @@ fixedeffectsVGP <- data.frame(
 )
 colnames(fixedeffectsVGP) <- columns
 
-write.csv(randomeffects, 'exp2_condConst_lmm_randomEffects.csv')
-write.csv(fixedeffectsAnti, 'exp2_condConst_lmm_fixedeffectsAnti.csv')
-write.csv(fixedeffectsVGP, 'exp2_condConst_lmm_fixedeffectsVGP.csv')
+write.csv(randomeffects, 'LMM/exp2_condConst_lmm_randomEffects.csv')
+write.csv(fixedeffectsAnti, 'LMM/exp2_condConst_lmm_fixedeffectsAnti.csv')
+write.csv(fixedeffectsVGP, 'LMM/exp2_condConst_lmm_fixedeffectsVGP.csv')
 
 
 
@@ -172,7 +172,7 @@ colnames(rPA) <- c("Constant", "P(V3)", "Trial vel[V1]", 'Axis[vert.]')
 
 
 starAnti.out <- stargazer(aSPon_lmm,aSPv_lmm,
-                          out='exp2_condConst_lmmResults_antiParams.html', 
+                          out='LMM/exp2_condConst_lmmResults_antiParams.html', 
                           title='Anticipatory Parameters',
                           single.row=FALSE,
                           report = "vc*stp",
@@ -195,7 +195,7 @@ starAnti.out <- stargazer(aSPon_lmm,aSPv_lmm,
 
 
 starVGP.out <- stargazer(SPlat_lmm,SPacc_lmm,
-                         out='exp2_condConst_lmmResults_VGPparams.html', 
+                         out='LMM/exp2_condConst_lmmResults_VGPparams.html', 
                          title='Visually Guided Parameters',
                          single.row=FALSE,
                          report = "vc*stp",

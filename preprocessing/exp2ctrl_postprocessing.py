@@ -57,7 +57,6 @@ keys2save = ['subject','condition', 'trial', 'direction', 'time_x', 'time_y',
 float_keys = ['posDeg_x', 'posDeg_y', 'velocity_x', 'velocity_y']
 int_keys   = ['trial', 'time_x', 'time_y']
 
-data = dict()
 for sub in subjects:
     print('Subject:',sub)
     
@@ -79,6 +78,7 @@ for sub in subjects:
         temp.reset_index(inplace=True)
                 
         # transform data in a new dataframe
+        data = dict()
         for index, row in temp.iterrows():
             temp.loc[index]['posDeg_x'][temp.loc[index]['posPxl_x'] < screen_width_px*.05]  = np.nan
             temp.loc[index]['posDeg_x'][temp.loc[index]['posPxl_x'] > screen_width_px*.95]  = np.nan
@@ -119,7 +119,6 @@ keys = [
         'SPlat_x','SPlat_y',
         'SPacc_x','SPacc_y',
         'SPss_x','SPss_y']
-params = pd.DataFrame([], columns=keys)
 
 for sub in subjects:
     print('Subject:',sub)
@@ -143,9 +142,8 @@ for sub in subjects:
 
     # transform into a dataframe and save into sXX_4C_smoothPursuitData.h5
     tempDF['sub'] = [sub for _ in range(len(tempDF))]
-    newTempDF = tempDF[tempDF.columns.intersection(keys)]
+    params = tempDF[tempDF.columns.intersection(keys)]
 
-    params = pd.concat([params, newTempDF], ignore_index=True)
     float_keys = ['aSPv_x', 'aSPon_x', 'SPacc_x','SPlat_x','SPss_x',
                   'aSPv_y', 'aSPon_y', 'SPacc_y','SPlat_y','SPss_y']
     params[float_keys] = params[float_keys].astype(float)

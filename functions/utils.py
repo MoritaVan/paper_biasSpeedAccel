@@ -231,7 +231,7 @@ def old_plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=No
 def plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=None, ax=None, 
                       jitter=.125, scatterSize:int=.5, boxWidth:float=5., showfliers:bool=True, alpha:int=10, 
                       showKde:bool=True, showBox:bool=True, 
-                      xticks=None, cmapName:str='winter', cmapAlpha=.5) -> None:
+                      xticks=None, cmapName:str='winter', color=None, cmapAlpha=.5) -> None:
     '''
     ----------------------------------
     Created by Cristiano Azarias, 2020
@@ -259,12 +259,16 @@ def plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=None, 
     else:
         n_groups = len(groups)
 
-    cmap = plt.get_cmap(cmapName) #timing_cmap() # Load colormap
-    colors = cmap(np.linspace(.3, .6, n_groups)) # Set colors based on the group length
-    colors50 = np.copy(colors) # Colors copy
-    colors50[:,-1] = .7 # Decrease opacity
-    colors80 = np.copy(colors)
-    colors80[:,-1] = .9 # Decrease opacity
+    if color is None:
+        cmap = plt.get_cmap(cmapName) #timing_cmap() # Load colormap
+        colors = cmap(np.linspace(.3, .6, n_groups)) # Set colors based on the group length
+        # colors50 = np.copy(colors) # Colors copy
+        # colors50[:,-1] = .7 # Decrease opacity
+        # colors80 = np.copy(colors)
+        # colors80[:,-1] = .9 # Decrease opacity
+    else:
+        colors = np.tile(color, (n_groups, 1))
+
     colorsAlpha = np.copy(colors)
     colorsAlpha[:,-1] = cmapAlpha # Decrease opacity
 

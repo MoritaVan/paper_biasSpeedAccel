@@ -87,20 +87,20 @@ cond[cond=='Vd-100_V0-0'] <- 'vdec'
 dataAll$condition <- cond
 
 v0 <- cond
-v0[v0=="v11"] <- 11
-v0[v0=="v22"] <- 22
-v0[v0=="v33"] <- 33
-v0[v0=="vacc"] <- 11
-v0[v0=="vdec"] <- 33
+v0[v0=="v11"] <- 11/sqrt(2)
+v0[v0=="v22"] <- 22/sqrt(2)
+v0[v0=="v33"] <- 33/sqrt(2)
+v0[v0=="vacc"] <- 11/sqrt(2)
+v0[v0=="vdec"] <- 33/sqrt(2)
 v0 <- as.numeric(v0)
 dataAll$v0 <- v0
 
 ac <- cond
-ac[ac=="v11"] <- 0
-ac[ac=="v22"] <- 0
-ac[ac=="v33"] <- 0
-ac[ac=="vacc"] <- 22
-ac[ac=="vdec"] <- -22
+ac[ac=="v11"] <- 0/sqrt(2)
+ac[ac=="v22"] <- 0/sqrt(2)
+ac[ac=="v33"] <- 0/sqrt(2)
+ac[ac=="vacc"] <- 22/sqrt(2)
+ac[ac=="vdec"] <- -22/sqrt(2)
 ac <- as.numeric(ac)
 dataAll$accel <- ac
 
@@ -215,9 +215,9 @@ fixedeffectsVGP <- data.frame(
 )
 colnames(fixedeffectsVGP) <- columns
 
-write.csv(randomeffects, 'exp2_cond100Pred_lmm_randomEffects.csv')
-write.csv(fixedeffectsAnti, 'exp2_cond100Pred_lmm_fixedeffectsAnti.csv')
-write.csv(fixedeffectsVGP, 'exp2_cond100Pred_lmm_fixedeffectsVGP.csv')
+write.csv(randomeffects, 'LMM/exp2_cond100Pred_lmm_randomEffects.csv')
+write.csv(fixedeffectsAnti, 'LMM/exp2_cond100Pred_lmm_fixedeffectsAnti.csv')
+write.csv(fixedeffectsVGP, 'LMM/exp2_cond100Pred_lmm_fixedeffectsVGP.csv')
 
 
 
@@ -233,7 +233,7 @@ colnames(rPA) <- c("Constant", "v0", "accel", "exp[const.Time]")
 
 
 starAnti.out <- stargazer(aSPon_lmm,aSPv_lmm,
-                          out='exp2_cond100Pred_lmmResults_antiParams.html', 
+                          out='LMM/exp2_cond100Pred_lmmResults_antiParams.html', 
                           title='Anticipatory Parameters',
                           single.row=FALSE,
                           report = "vc*stp",
@@ -256,7 +256,7 @@ starAnti.out <- stargazer(aSPon_lmm,aSPv_lmm,
 
 
 starVGP.out <- stargazer(SPlat_lmm,SPacc_lmm,
-                         out='exp2_cond100Pred_lmmResults_VGPparams.html', 
+                         out='LMM/exp2_cond100Pred_lmmResults_VGPparams.html', 
                          title='Visually Guided Parameters',
                          single.row=FALSE,
                          report = "vc*stp",
@@ -276,3 +276,4 @@ starVGP.out <- stargazer(SPlat_lmm,SPacc_lmm,
                            "Accel:Exp.[const.Time]",
                            "V0:Accel:Exp.[const.Time]",
                            'Constant'))
+

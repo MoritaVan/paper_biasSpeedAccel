@@ -57,11 +57,9 @@ keys2save = ['subject','condition', 'trial', 'tg_dir', 'tg_vel', 'time',
 float_keys = ['posDeg_x', 'posDeg_y', 'velocity_x', 'velocity_y']
 int_keys   = ['trial', 'time']
 
-data = pd.DataFrame([], columns=keys2save)
 for sub in subjects:
     print('Subject:',sub)
     
-    temp = pd.DataFrame()
     for cond in conditions:
         print(cond)
         # read data
@@ -81,6 +79,7 @@ for sub in subjects:
         if cond=='p50': # velocity was wrongly coded for this condition
             temp['velocity'] = ['HS' if x=='LS' else 'LS' for x in temp['velocity']]
                 
+        data = pd.DataFrame([], columns=keys2save)
         # transform data in a new dataframe
         for index, row in temp.iterrows():
             temp.loc[index]['posDeg_x'][temp.loc[index]['posDeg_x'] < screen_width_deg*.05]  = np.nan
@@ -109,6 +108,8 @@ for sub in subjects:
         data[int_keys]   = data[int_keys].astype(int)
 
         data.to_hdf(h5_rawfile, 'rawFormatted')
+    
+    del data, newData
 
             
 #%% read data
@@ -120,34 +121,31 @@ keys = ['sub','condition', 'trial', 'target_dir', 'trial_velocity',
         'SPlat',
         'SPacc',
         'SPss']
-params = pd.DataFrame([], columns=keys)
 for sub in subjects:
     print('Subject:',sub)
-
-    tempDF = pd.DataFrame()
+    params = pd.DataFrame([], columns=keys)
     for cond in conditions:
         h5_file = '{sub}/{sub}_{cond}_posFilter_nonlinear.h5'.format(sub=sub, cond=cond)
-        temp_tmp  = pd.read_hdf(h5_file,'data/')
+        temp    = pd.read_hdf(h5_file,'data/')
 
         h5_qcfile = '{sub}/{sub}_{cond}_qualityControl_nonlinear.h5'.format(sub=sub, cond=cond) 
         cq        = pd.read_hdf(h5_qcfile, 'data/')
 
         for index, row in cq.iterrows():
             if (row['keep_trial'] == 0) or (row['good_fit'] == 0): # check if good trial
-                temp_tmp.drop(temp_tmp[temp_tmp['trial']==row['trial']].index, inplace=True)
-        temp_tmp.reset_index(inplace=True)
+                temp.drop(temp[temp['trial']==row['trial']].index, inplace=True)
+        temp.reset_index(inplace=True)
         
         if cond=='p50': # velocity was wrongly coded for this condition
-            temp_tmp['trial_velocity'] = ['HS' if x=='LS' else 'LS' for x in temp_tmp['trial_velocity']]
+            temp['trial_velocity'] = ['HS' if x=='LS' else 'LS' for x in temp['trial_velocity']]
 
-        temp_tmp['cond'] = cond
-        tempDF = tempDF.append(temp_tmp, ignore_index=True)
+        temp['cond'] = cond
+        temp['sub'] = sub
+        params = pd.concat([params, temp], ignore_index=True)
 
     # transform into a dataframe and save into sXX_biasSpeed_smoothPursuitData.h5
-    tempDF['sub'] = [sub for _ in range(len(tempDF))]
-    newTempDF = tempDF[tempDF.columns.intersection(keys)]
+    params = params[params.columns.intersection(keys)]
 
-    params = pd.concat([params, newTempDF], ignore_index=True)
     float_keys = ['aSPv', 'aSPon',
             'SPacc','SPlat','SPss']
     params[float_keys] = params[float_keys].astype(float)
@@ -155,4 +153,4 @@ for sub in subjects:
     h5_file = '{s}/{s}_biasSpeed_smoothPursuitData_nonlinear.h5'.format(s=sub)
     params.to_hdf(h5_file, 'data')
 
-    del tempDF
+    del temp
