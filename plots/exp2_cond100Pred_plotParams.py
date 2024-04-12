@@ -155,11 +155,10 @@ lme_raneff.fillna(0, inplace=True)
 
 v0_val = np.array([7.78, 15.56, 23.33])
 ac_val = np.array([15.56, 0, -15.56])
-print(v0_val)
-print(ac_val)
+ac_plot = [v0_val[0]+1.5, v0_val[-1]-1.5]
 
 anticipParams = [['aSPon','Anticipation Onset', [-150,0], ' aSPon (ms)'],
-                 ['aSPv', 'Anticipatory Eye Velocity', [-2.5,9], ' aSPv (°/s)'],
+                 ['aSPv', 'Anticipatory Eye Velocity', [-2.5,10], ' aSPv (°/s)'],
                 ]
 anticipData = allSubsData.groupby(['exp', 'sub','v0','ac']).mean()
 anticipData.reset_index(inplace=True)
@@ -167,7 +166,7 @@ print(lme_fixeffAnti)
 print(lme_fixeffVGP)
 print(lme_raneff)
 
-idxConst = [True if x!=0.0 else False for x in anticipData['ac']]
+idxConst = [True if x==0.0 else False for x in anticipData['ac']]
 idxAccel = [not x for x in idxConst]
 
 idxAccel = np.array(idxAccel)
@@ -182,13 +181,9 @@ for p in anticipParams:
     intercept = lme_fixeffAnti.loc['Intercept',p[0]]
     v0        = lme_fixeffAnti.loc['v0',p[0]]
     ac        = lme_fixeffAnti.loc['accel',p[0]]
-    exp       = lme_fixeffAnti.loc['expconstantTime',p[0]]
     v0_ac     = lme_fixeffAnti.loc['v0:accel',p[0]]
-    v0_exp    = lme_fixeffAnti.loc['v0:expconstantTime',p[0]]
-    ac_exp    = lme_fixeffAnti.loc['accel:expconstantTime',p[0]]
-    v0_ac_exp = lme_fixeffAnti.loc['v0:accel:expconstantTime',p[0]]
     
-    f,ax1 = plt.subplots(figsize=(two_col, 6*cm))# width, height
+    f,ax1 = plt.subplots(figsize=(two_col, 8*cm))# width, height
     plt.suptitle(p[1])
 
     # EXP const displacement
@@ -196,37 +191,36 @@ for p in anticipParams:
     y_label  = '{}'.format(p[3])
     ax1 = plt.subplot(1,2,1)
     ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
-    plt.title('Exp 2A - Constant Displacement')
+    plt.title('Model: Initial speed')
     for sub in subjects:
         raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
         s_intercept = list(raneff['Intercept'])[0]
         s_v0        = list(raneff['v0'])[0]
         s_ac        = list(raneff['accel'])[0]
-        s_exp       = list(raneff['experiment'])[0]
         
         reg_Const = v0_val*(v0 + s_v0) + (intercept + s_intercept)
         reg_Accel = v0_val*(v0 + s_v0) + ac_val*(s_ac + ac) + v0_val*ac_val*(v0_ac) + (intercept + s_intercept)
-        ax1.plot(v0_val+1, reg_Const, color=colorLS, alpha=0.5)
-        ax1.plot(v0_val-1, reg_Accel, color=colorHS, alpha=0.5)
+        ax1.plot(v0_val, reg_Const, color=colorLS, alpha=0.5)
     
-    plotBoxDispersion(data=anticipData[idxConst&idxExp], 
+    plotBoxDispersion(data=anticipData[idxConst], 
                         by=['v0'], 
                         between=var2plot, ax=ax2, alpha=0,
                         cmapAlpha=1,
                         scatterSize=25,
                         jitter=0.25,
-                        xticks= v0_val+1,
+                        xticks= v0_val,
                         boxWidth = 1,
                         showfliers=False,
                         showKde=False,
                         color = colorLS,
                         cmapName=None)
-    plotBoxDispersion(data=anticipData[idxAccel&idxExp], 
+    plotBoxDispersion(data=anticipData[idxAccel], 
                         by=['ac'], 
                         between=var2plot, ax=ax2, alpha=0,  
                         cmapAlpha=1,
                         boxWidth=1,
-                        xticks=v0_val-1,
+                        xticks=ac_plot,
+                        groups=[15.56, -15.56],
                         scatterSize=25,
                         jitter=0.25,
                         showfliers=False,
@@ -234,50 +228,46 @@ for p in anticipParams:
                         color = colorHS,
                         cmapName=None)
     plt.ylim(p[2])
-    ax1.set_xlabel('v0')
+    ax1.set_xlabel('Initial Speed')
     ax1.set_ylabel(y_label)
     ax1.set_xlim([v0_val[0]-2,v0_val[-1]+2])
     ax2.set_xlim([v0_val[0]-2,v0_val[-1]+2])
     ax1.set_xticks(v0_val)
-    ax1.set_xticklabels(v0_val)
+    ax1.set_xticklabels(['v11', 'v22', 'v33'])
     ax2.set_xticks([])
 
-    # Y AXIS
-    var2plot = '{}_y'.format(p[0])
-    y_label = '{}'.format(p[3])
     ax1 = plt.subplot(1,2,2)
     ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
-    plt.title('Exp 2B - Constant Duration')
-    for sub in list(newSubCtrl.values()):
+    plt.title('Model: Initial speed + acceleration')
+    for sub in subjects:
         raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
         s_intercept = list(raneff['Intercept'])[0]
         s_v0        = list(raneff['v0'])[0]
         s_ac        = list(raneff['accel'])[0]
-        s_exp       = list(raneff['experiment'])[0]
         
-        reg_Const = v0_val*(v0 + v0_exp + s_v0) + (intercept + s_intercept)
-        reg_Accel = v0_val*(v0 + v0_exp + s_v0) + ac_val*(s_ac + ac + ac_exp) + v0_val*ac_val*(v0_ac_exp+v0_ac)  + (intercept + s_intercept)
-        ax1.plot(v0_val+1, reg_Const, color=colorLS, alpha=0.5)
-        ax1.plot(v0_val-1, reg_Accel, color=colorHS, alpha=0.5)
-     
-    plotBoxDispersion(data=anticipData[idxConst&idxCtrl], 
+        reg_Const = v0_val*(v0 + s_v0) + (intercept + s_intercept)
+        reg_Accel = v0_val*(v0 + s_v0) + ac_val*(s_ac + ac) + v0_val*ac_val*(v0_ac) + (intercept + s_intercept)
+        ax1.plot(v0_val, reg_Accel, color=colorHS, alpha=0.5)
+    
+    plotBoxDispersion(data=anticipData[idxConst], 
                         by=['v0'], 
                         between=var2plot, ax=ax2, alpha=0,
                         cmapAlpha=1,
-                        boxWidth=1,
-                        xticks=v0_val+1,
                         scatterSize=25,
                         jitter=0.25,
+                        xticks= v0_val,
+                        boxWidth = 1,
                         showfliers=False,
                         showKde=False,
                         color = colorLS,
                         cmapName=None)
-    plotBoxDispersion(data=anticipData[idxAccel&idxCtrl], 
+    plotBoxDispersion(data=anticipData[idxAccel], 
                         by=['ac'], 
                         between=var2plot, ax=ax2, alpha=0,  
                         cmapAlpha=1,
                         boxWidth=1,
-                        xticks=v0_val-1,
+                        xticks=ac_plot,
+                        groups=[15.56, -15.56],
                         scatterSize=25,
                         jitter=0.25,
                         showfliers=False,
@@ -285,151 +275,166 @@ for p in anticipParams:
                         color = colorHS,
                         cmapName=None)
     plt.ylim(p[2])
-    ax1.set_xlabel('v0')
+    ax1.set_xlabel('Initial Speed')
     ax1.set_ylabel(y_label)
     ax1.set_xlim([v0_val[0]-2,v0_val[-1]+2])
     ax2.set_xlim([v0_val[0]-2,v0_val[-1]+2])
     ax1.set_xticks(v0_val)
-    ax1.set_xticklabels(v0_val)
+    ax1.set_xticklabels(['v11', 'v22', 'v33'])
     ax2.set_xticks([])
-    ax1.legend(['Const.', 'Accel.'])
+    # ax1.legend(['','','Const.', 'Accel.'])
 
     plt.tight_layout()
-    plt.savefig('{}/exp2_cond100Pred_group_{}.pdf'.format(output_folder, p[1]))
-    plt.savefig('{}/exp1_cond100Pred_group_{}.png'.format(output_folder, p[1]))
-
-visParams = [['SPlat','Latency', [105,140], 'SPlat (ms)'],
-             ['SPacc', 'Pursuit Acceleration', [35,220], 'SPacc (°/s\N{SUPERSCRIPT TWO})'],
-            #  ['SPss', 'Steady State', [4, 17], 'Horizontal SPss (°/s)'],
-            ]
-visData = allSubsData.groupby(['sub','prob','trial_velocity']).agg(np.nanmean)
-visData.reset_index(inplace=True)
-
-idxHS   = [True if '33' in x else False for x in visData['trial_velocity']]
-idxLS = [not x for x in idxHS]
-
-idxHS = np.array(idxHS)
-idxLS = np.array(idxLS)
-
-for p in visParams:
-    print(p[1])
-
-    intercept  = lme_fixeffVGP.loc['Intercept',p[0]]
-    prob       = lme_fixeffVGP.loc['prob',p[0]]
-    tgvel      = lme_fixeffVGP.loc['trial_velocityV1',p[0]]
-    axis       = lme_fixeffVGP.loc['axisvert.',p[0]]
-    prob_tgvel = lme_fixeffVGP.loc['trial_velocityV1:prob',p[0]]
-    prob_axis  = lme_fixeffVGP.loc['prob:axisvert.',p[0]]
-    axis_tgvel = lme_fixeffVGP.loc['trial_velocityV1:axisvert.',p[0]]
-    prob_tgvel = lme_fixeffVGP.loc['trial_velocityV1:prob',p[0]]
-    prob_tgvel_axis = lme_fixeffVGP.loc['trial_velocityV1:prob:axisvert.',p[0]]
-    
-    fig1 = plt.subplots(figsize=(two_col, 6*cm)) # width, height
-    plt.suptitle(p[1])
-    # X AXIS
-    var2plot = '{}_x'.format(p[0])
-    y_label = 'Horizontal {}'.format(p[3])
-    ax1 = plt.subplot(1,2,1)
-    ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
-    for sub in subjects:
-        raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
-        s_intercept = list(raneff['Intercept'])[0]
-        s_prob      = list(raneff['prob'])[0]
-        s_tgVel     = list(raneff['trial_velocity'])[0]
-        s_axis      = list(raneff['axis'])[0]
-        
-        reg_HS = cond_num[1:]*(prob + s_prob) + (intercept + s_intercept)
-        reg_LS = cond_num[:-1]*(prob_tgvel + prob + s_prob) + (s_tgVel + tgvel) + (intercept + s_intercept)
-        ax1.plot(cond_num[1:]+.03, reg_HS, color=colorHS, alpha=0.5)
-        ax1.plot(cond_num[:-1]-.03, reg_LS, color=colorLS, alpha=0.5)
-    
-    plotBoxDispersion(data=visData[idxHS], 
-                        by=['prob'], 
-                        between=var2plot, ax=ax2, alpha=0,
-                        cmapAlpha=1,
-                        scatterSize=25,
-                        jitter=.01,
-                        xticks= cond_num[1:]+.03,
-                        boxWidth = .045,
-                        showfliers=False,
-                        showKde=False,
-                        color = colorHS,
-                        cmapName=None)
-    plotBoxDispersion(data=visData[idxLS], 
-                        by=['prob'], 
-                        between=var2plot, ax=ax2, alpha=0,  
-                        cmapAlpha=1,
-                        boxWidth=.045,
-                        xticks=cond_num[:-1]-.03,
-                        scatterSize=25,
-                        jitter=.01,
-                        showfliers=False,
-                        showKde=False,
-                        color = colorLS,
-                        cmapName=None)
-    plt.ylim(p[2])
-    ax1.set_xlabel('P(v33)')
-    ax1.set_ylabel(y_label)
-    ax1.set_xlim(np.array([-10,110])/100)
-    ax2.set_xlim(np.array([-10,110])/100)
-    ax1.set_xticks(cond_num)
-    ax1.set_xticklabels(cond_num)
-    ax2.set_xticks([])
-
-    # Y AXIS
-    var2plot = '{}_y'.format(p[0])
-    y_label = 'Vertical {}'.format(p[3])
-    ax1 = plt.subplot(1,2,2)
-    ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
-    for sub in subjects:
-        raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
-        s_intercept = list(raneff['Intercept'])[0]
-        s_prob      = list(raneff['prob'])[0]
-        s_tgVel     = list(raneff['trial_velocity'])[0]
-        s_axis      = list(raneff['axis'])[0]
-        
-        reg_HS = cond_num[1:]*(prob_axis + prob + s_prob) + (axis + s_axis) + (intercept + s_intercept)
-        reg_LS = cond_num[:-1]*(prob_tgvel + prob_axis + prob_tgvel_axis + prob + s_prob) + (s_tgVel + tgvel) + (axis + axis_tgvel + s_axis) + (intercept + s_intercept)
-        ax1.plot(cond_num[1:]+.03, reg_HS, color=colorHS, alpha=0.5)
-        ax1.plot(cond_num[:-1]-.03, reg_LS, color=colorLS, alpha=0.5)
-    
-    plotBoxDispersion(data=visData[idxHS], 
-                        by=['prob'], 
-                        between=var2plot, ax=ax2, alpha=0,
-                        cmapAlpha=1,
-                        scatterSize=25,
-                        jitter=.01,
-                        xticks= cond_num[1:]+.03,
-                        boxWidth = .045,
-                        showfliers=False,
-                        showKde=False,
-                        color = colorHS,
-                        cmapName=None)
-    plotBoxDispersion(data=visData[idxLS], 
-                        by=['prob'], 
-                        between=var2plot, ax=ax2, alpha=0,  
-                        cmapAlpha=1,
-                        boxWidth=.045,
-                        xticks=cond_num[:-1]-.03,
-                        scatterSize=25,
-                        jitter=.01,
-                        showfliers=False,
-                        showKde=False,
-                        color = colorLS,
-                        cmapName=None)
-    plt.ylim(p[2])
-    ax1.set_xlabel('P(v33)')
-    ax1.set_ylabel(y_label)
-    ax1.set_xlim(np.array([-10,110])/100)
-    ax2.set_xlim(np.array([-10,110])/100)
-    ax1.set_xticks(cond_num)
-    ax1.set_xticklabels(cond_num)
-    ax2.set_xticks([])
-    # ax.set_xlabels(conditions)
-    # plt.xticks(rotation = 20)
-    ax1.legend(['v33', 'v11'])
-   
-    plt.tight_layout()
-    
     plt.savefig('{}/exp2_cond100Pred_group_{}.pdf'.format(output_folder, p[1]))
     plt.savefig('{}/exp2_cond100Pred_group_{}.png'.format(output_folder, p[1]))
+
+
+cmap_blues = plt.get_cmap('Blues_r') 
+cmap_reds = plt.get_cmap('Reds_r') 
+
+blues2 = cmap_blues(np.linspace(0.2, .6, 3))
+reds2  = cmap_reds(np.linspace(0.2, .6, 2))
+colors100 = {
+    'v11': blues2[0],
+    'v22': blues2[1],
+    'v33': blues2[2],
+    'vacc': reds2[0],
+    'vdec': reds2[1],
+}
+
+pairs = [
+            ['v11', 'v22'], 
+            ['v11', 'v33'],   
+            ['v22', 'v33'],
+            ['v11', 'vacc'], 
+            ['v22', 'vacc'],   
+            ['v33', 'vacc'],
+            ['v11', 'vdec'], 
+            ['v22', 'vdec'],   
+            ['v33', 'vdec'],
+            ['vacc', 'vdec']
+         ]
+pvalues_antivel = [
+    .00001, # 1-2
+    .00001, # 1-3
+    .30822, # 2-3
+    .3791, # a-1
+    .0196, # a-2
+    .00001, # a-3 
+    .00001, # d-1
+    .1634, # d-2
+    .1753, # d-3
+    .0005, # a-d
+]
+
+def convert_pvalue_to_asterisks(pvalue):
+    if pvalue <= 0.0001:
+        return "***"
+    elif pvalue <= 0.001:
+        return "**"
+    elif pvalue <= 0.01:
+        return "*"
+    return "ns"
+
+pvalues_antivel   = [convert_pvalue_to_asterisks(x) for x in pvalues_antivel]
+
+anticipParams = [
+                 ['aSPv', 'Anticipatory Eye Velocity', [-2.5,10], ' aSPv (°/s)'],
+                ]
+anticipData = allSubsData.groupby(['sub','cond']).mean()
+anticipData.reset_index(inplace=True)
+print(anticipData.head(10))
+
+for p in anticipParams:
+    print(p[1])
+
+    formatted_pvalues = pvalues_antivel
+
+    fig1 = plt.figure(figsize=(two_col, 7*cm)) # width, height
+    plt.suptitle(p[1])
+    ax1 = plt.subplot(1,2,1)
+    var2plot = '{}_x'.format(p[0])
+    label = 'Horizontal {}'.format(p[3])
+    plotBoxDispersion(data=anticipData, 
+                      by='cond', 
+                    between=var2plot, ax=ax1, alpha=0,
+                    groups=list(cond100.values()),
+                    groupsNames=list(cond100.values()),
+                    scatterSize=30,
+                    cmapAlpha=1,
+                    jitter=0.1,
+                    boxWidth = 0.4,
+                    showfliers=False,
+                    showKde=False,
+                    cmap=list(colors100.values())
+                    )
+
+    plt.ylim(p[2])
+    ax1.set_xlabel('Condition')
+    ax1.set_ylabel(label)
+    ax1.patch.set_visible(False)
+
+    ymin, ymax = ax1.get_ylim()
+    pos      = ax1.get_xticks()
+    labels   = ax1.get_xticklabels()
+    labels   = [l.get_text() for l in labels]
+    groupPos = {x:y for x,y in zip(labels,pos)}
+    pairPos  = [[groupPos[x[0]],groupPos[x[1]]] for x in pairs]
+    prop = (ymax-ymin)/20
+    h0 = ymax-(prop/2)
+    for idx,pval in enumerate(formatted_pvalues):
+        if pval != 'ns':
+            xmin = pairPos[idx][0]
+            xmax = pairPos[idx][1]
+            xtxt = (xmin+xmax)/2 - .05
+            ytxt = h0-.1
+            plt.hlines(y=h0, xmin=xmin, xmax=xmax, colors='k', linewidth=.5)
+            ax1.annotate(pval, xy=(xtxt,ytxt), zorder=10, fontsize=6)
+            h0 += prop
+
+    plt.ylim([ymin,h0+.01])
+    
+    ax1 = plt.subplot(1,2,2) 
+    var2plot = '{}_y'.format(p[0])
+    label = 'Vertical {}'.format(p[3])
+    plotBoxDispersion(data=anticipData, 
+                      by='cond', 
+                    between=var2plot, ax=ax1, alpha=0, 
+                    groups=list(cond100.values()),
+                    groupsNames=list(cond100.values()),
+                    scatterSize=30,
+                    cmapAlpha=1,
+                    jitter=0.1,
+                    boxWidth = 0.4,
+                    showfliers=False,
+                    showKde=False,
+                    cmap=list(colors100.values()))
+    plt.ylim(p[2])
+    ax1.set_xlabel('Condition')
+    ax1.set_ylabel(label)
+    ax1.patch.set_visible(False)    
+
+    ymin, ymax = ax1.get_ylim()
+    pos      = ax1.get_xticks()
+    labels   = ax1.get_xticklabels()
+    labels   = [l.get_text() for l in labels]
+    groupPos = {x:y for x,y in zip(labels,pos)}
+    pairPos  = [[groupPos[x[0]],groupPos[x[1]]] for x in pairs]
+    prop = (ymax-ymin)/20
+    h0 = ymax-(prop/2)
+    for idx,pval in enumerate(formatted_pvalues):
+        if pval != 'ns':
+            xmin = pairPos[idx][0]
+            xmax = pairPos[idx][1]
+            xtxt = (xmin+xmax)/2 - .05
+            ytxt = h0-.1
+            plt.hlines(y=h0, xmin=xmin, xmax=xmax, colors='k', linewidth=.5)
+            ax1.annotate(pval, xy=(xtxt,ytxt), zorder=10, fontsize=6)
+            h0 += prop
+
+    plt.ylim([ymin,h0+.01])
+
+    plt.tight_layout()
+    
+    plt.savefig('{}/exp2_cond100Pred_groupPairwise_{}.pdf'.format(output_folder, p[1]))
+    plt.savefig('{}/exp2_cond100Pred_groupPairwise_{}.png'.format(output_folder, p[1]))

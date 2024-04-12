@@ -161,7 +161,6 @@ bic_to_bf(c(bicbase, bicV0, bicAc, bicFull), denominator = bicbase)
 bic_to_bf(c(bicV0, bicAc, bicFull), denominator = bicV0)
 
 
-
 aSPon_lmm <- lme(aSPon ~ 1 + v0*accel*exp,
                 random = list(sub = ~ 1 + v0 + accel + exp),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
                 data=dataAll)
@@ -277,3 +276,27 @@ starVGP.out <- stargazer(SPlat_lmm,SPacc_lmm,
                            "V0:Accel:Exp.[const.Time]",
                            'Constant'))
 
+
+###############################################
+aSPv_lmm <- lme(aSPv ~ 1 + condition,
+                random = list(sub = ~ 1 + condition),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
+                data=dataAll)
+summary(aSPv_lmm)
+contrast(emmeans(aSPv_lmm, specs="condition"), "pairwise", adjust='none')
+contrast(emmeans(aSPv_lmm, specs="condition"), "pairwise", adjust='BH') # Benjamini & Hochberg, FDR
+
+
+aSPon_lmm <- lme(aSPon ~ 1 + condition*exp,
+                random = list(sub = ~ 1 + condition + exp),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
+                data=dataAll)
+summary(aSPon_lmm)
+
+SPlat_lmm <- lme(SPlat ~ 1 + condition*exp,
+                 random = list(sub = ~ 1 + condition + exp),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
+                 data=dataAll)
+summary(SPlat_lmm)
+
+SPacc_lmm <- lme(SPacc ~ 1 + condition*exp,
+                 random = list(sub = ~ 1 + condition + exp),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
+                 data=dataAll)
+summary(SPacc_lmm)

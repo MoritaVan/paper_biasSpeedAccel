@@ -96,6 +96,35 @@ allSubsData.replace({"n1_tgVel": new_val}, inplace=True)
 allSubsData.reset_index(inplace=True)
 print(allSubsData.head())
 
+anticipData = allSubsData.groupby(['n1_tgVel','sub','prob']).mean()
+anticipData.reset_index(inplace=True)
+anticipData = anticipData.loc[~anticipData.prob.isin([0.0, 1.0]),['n1_tgVel','sub','prob','aSPv_x','aSPv_y']]
+
+
+diff_x = np.array(anticipData.loc[anticipData.n1_tgVel=='v33','aSPv_x'])-np.array(anticipData.loc[anticipData.n1_tgVel=='v11','aSPv_x'])
+diff_y = np.array(anticipData.loc[anticipData.n1_tgVel=='v33','aSPv_y'])-np.array(anticipData.loc[anticipData.n1_tgVel=='v11','aSPv_y'])
+diff_df = anticipData.loc[anticipData.n1_tgVel=='v33',['sub','prob']]
+diff_df['diff_v33-v11_x'] = diff_x
+diff_df['diff_v33-v11_y'] = diff_y
+print(diff_df)
+f = plt.figure(figsize=(two_col,6*cm))
+plt.subplot(1,2,1)
+sns.lineplot(data=diff_df,
+             x = 'prob', y = 'diff_v33-v11_x',
+             err_style="bars", markers=True)
+plt.ylim([0,1.3])
+plt.xlim([0,1])
+plt.subplot(1,2,2)
+sns.lineplot(data=diff_df,
+             x = 'prob', y = 'diff_v33-v11_y',
+             err_style="bars", markers=True)
+plt.ylim([0,1.3])
+plt.xlim([0,1])
+plt.savefig('{}/exp2_diff_v33-v11.png'.format(output_folder))
+plt.savefig('{}/exp2_diff_v33-v11.pdf'.format(output_folder))
+
+dhasj
+
 # read LME results from csv generated on R
 lmm_dir = "{}/LMM".format(output_folder)
 lme_raneff     = pd.read_csv('{}/exp2_condConst_lmm_randomEffects.csv'.format(lmm_dir))

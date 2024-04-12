@@ -1,3 +1,4 @@
+import traceback
 
 def pause():
     x = input("Press the <ENTER> key to continue...")
@@ -231,7 +232,7 @@ def old_plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=No
 def plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=None, ax=None, 
                       jitter=.125, scatterSize:int=.5, boxWidth:float=5., showfliers:bool=True, alpha:int=10, 
                       showKde:bool=True, showBox:bool=True, 
-                      xticks=None, cmapName:str='winter', color=None, cmapAlpha=.5) -> None:
+                      xticks=None, cmapName:str='winter', color=None, cmap=None, cmapAlpha=.5) -> None:
     '''
     ----------------------------------
     Created by Cristiano Azarias, 2020
@@ -260,12 +261,15 @@ def plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=None, 
         n_groups = len(groups)
 
     if color is None:
-        cmap = plt.get_cmap(cmapName) #timing_cmap() # Load colormap
-        colors = cmap(np.linspace(.3, .6, n_groups)) # Set colors based on the group length
-        # colors50 = np.copy(colors) # Colors copy
-        # colors50[:,-1] = .7 # Decrease opacity
-        # colors80 = np.copy(colors)
-        # colors80[:,-1] = .9 # Decrease opacity
+        if cmap is None:
+            cmap = plt.get_cmap(cmapName) #timing_cmap() # Load colormap
+            colors = cmap(np.linspace(.3, .6, n_groups)) # Set colors based on the group length
+            # colors50 = np.copy(colors) # Colors copy
+            # colors50[:,-1] = .7 # Decrease opacity
+            # colors80 = np.copy(colors)
+            # colors80[:,-1] = .9 # Decrease opacity
+        else:
+            colors = cmap
     else:
         colors = np.tile(color, (n_groups, 1))
 
@@ -313,15 +317,18 @@ def plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=None, 
                 idx   = groups.index(g) 
 
                 if showBox:
-                    bplot = plt.boxplot(group, positions = [pos[idx]], patch_artist=True, zorder=2, showfliers=showfliers) # Plot boxplot
+                    bplot = ax.boxplot(group, positions = [pos[idx]], patch_artist=True, zorder=2, showfliers=showfliers, widths=boxWidth) # Plot boxplot
                 kde = stats.gaussian_kde(group) # Fit gaussian kde
-                x = np.linspace(min(group), max(group), 1000) # Assign x's
+                if xticks is not None:
+                    x = np.linspace(min(xticks), max(xticks), 1000)
+                else:
+                    x = np.linspace(min(group), max(group), 1000) # Assing x's
                 n = len(group) # Assign the number of items per group
                 amp = alpha * n / len(data) # Set the amplitude based on the ratio of group size and total items
                 disp = jitter * np.abs(np.random.randn(n)) # Assign dispersion ratio
-                plt.scatter(pos[idx]*np.ones(n)+disp, group, s=scatterSize, facecolor=colorsAlpha[pos[idx]-1], zorder=1) # Plot all data on the right side of boxplot
+                ax.scatter(pos[idx]*np.ones(n)+disp, group, s=scatterSize, facecolor=colorsAlpha[idx,], zorder=1) # Plot all data on the right side of boxplot
                 if showKde:
-                    plt.fill_betweenx(x, pos[idx]-kde(x)*amp, pos[idx], facecolor=colorsAlpha[pos[idx]-1], zorder=1) # Plot the kde curve on the left side of boxplot
+                    ax.fill_betweenx(x, pos[idx]-kde(x)*amp, pos[idx], facecolor=colorsAlpha[idx-1], zorder=1) # Plot the kde curve on the left side of boxplot
                 if showBox:
                     for patch in bplot['boxes']: 
                         patch.set_facecolor((0,0,0,0)) # Set boxplot to transparent
@@ -332,7 +339,9 @@ def plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=None, 
                         patch.set_color('gold') # Set boxplot median to dark yellow
                         patch.set_linewidth(2) # Set boxplot median line width to 2
             
-            except: continue
+            except: 
+                traceback.print_exc()
+                continue
 
         plt.xticks(pos, groupsNames)
         # plt.xlim(pos[0]-1, pos[-1]+1)

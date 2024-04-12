@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+import pingouin as pg
 
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import explained_variance_score, r2_score
@@ -62,21 +63,17 @@ for sub in subjects:
     params  =  pd.read_hdf(h5_file, 'data')
     params['sub'] = np.ones(len(params)) * int(sub[-2:])
     paramsAll = pd.concat([paramsAll, params])
-    print(params.shape,paramsAll.shape)
 
 for idx,sub in enumerate(subjectsCtrl):
     h5_file = '{dir}/{sub}/{sub}_biasAccel_smoothPursuitData_nonlinear.h5'.format(dir=data_dir_ctrl, sub=sub)
     params  =  pd.read_hdf(h5_file, 'data')
     params['sub'] = np.ones(params.shape[0])*int(subjectsCtrl_newName[idx][-2:])
     paramsAll = pd.concat([paramsAll, params])
-    print(params.shape,paramsAll.shape)
 
 paramsAll.reset_index(inplace=True)
 idx = paramsAll['condition'].isin(cond100)
 paramsAll_100 = paramsAll[idx].copy()
 paramsAll_100.reset_index(inplace=True)
-print(paramsAll_100.sample(10))
-print(paramsAll_100.shape)
 
 # model: perceived velocity for accelerating conditions based on constant conditions
 
@@ -120,7 +117,6 @@ for sub in subjects:
     targetSpeed_test  = [x[1] for x in targetSpeed_test]
     targetSpeed_test  = [13 if x=='a' else 31 for x in targetSpeed_test]
     
-    # model = LinearRegression(fit_intercept=False)
     model = LinearRegression(fit_intercept=True)
     model.fit(np.asarray(x_train).reshape(-1, 1), y_train)
     
@@ -131,7 +127,6 @@ for sub in subjects:
     results['sub']          = sub
     results['intercept']    = model.intercept_
     results['coefficients'] = model.coef_
-#     results['r_sq']         = model.score(np.asarray(x_test).reshape(-1, 1), y_test)  
     results['trials_test']      = trials_test
     results['targetSpeed_test'] = list(targetSpeed_test)
     results['eyeSpeed_test']    = eyeSpeed_test
@@ -226,7 +221,6 @@ for index, row in paramsFit.iterrows():
         idx = np.where(row['targetSpeed_train']==tg_speed)[0].astype(int)
         mean = np.mean(np.array(row['eyeSpeed_train'])[idx]) 
         meanTg = float(tg_speed)
-#         meanTg = np.mean(np.array(row['targetSpeed_train_pred'])[idx])# pred values for cte vel???
         data2plot = data2plot.append(pd.DataFrame([[row['sub'], tg_speed, mean, meanTg]], columns=keys2plot))
     
     for tg_speed in np.unique(row['targetSpeed_test']):
@@ -249,9 +243,14 @@ colors100 = {
     13: reds2[0],
     31: reds2[1],
 }
+pf = paramsFit[~paramsFit['sub'].isin(['sub-08'])]
+coef = pf.coefficients.mean()[0]
+intercept = pf.intercept.mean()
+x = np.arange(-15,60,1)
+reg = intercept + coef*x
 
-# data2plot = data2plot[~data2plot['sub'].isin(['sub-08'])]
-# mean_tw_integration = mean_tw_integration[~mean_tw_integration['sub'].isin(['sub-08'])]
+data2plot = data2plot[~data2plot['sub'].isin(['sub-08'])]
+mean_tw_integration = mean_tw_integration[~mean_tw_integration['subject'].isin(['sub-08'])]
 
 dt_mean = data2plot.groupby(['condition']).mean().reset_index()
 dt_std  =  data2plot.groupby(['condition']).std().reset_index()
@@ -260,39 +259,48 @@ dt_std  = dt_std[dt_std['condition'].isin([13,31])]
 
 fig = plt.figure(figsize=(two_col, 8*cm))
 ax = plt.subplot(1,2,1)
-plt.title('Predicted Target Speed')
+plt.title('Target speed vs aSPv')
 sns.scatterplot(data=data2plot, x='meanPredTgVel',y='meanAntiVel',hue='condition', palette=colors100, s=75, ax=ax)
 plt.errorbar(x=dt_mean['meanPredTgVel'],y=dt_mean['meanAntiVel'],
                         xerr=dt_std['meanPredTgVel'],yerr=dt_std['meanAntiVel'],
                         ecolor=reds2,elinewidth=3,fmt='none')
-sns.regplot(data=data2plot[data2plot.condition.isin([11,22,33])],
-            x='meanPredTgVel', y='meanAntiVel', scatter=False)
-# plt.xlim([-50,80])
-plt.ylim([-1,9])
+plt.plot(x,reg,c='royalblue')
+plt.xlim([-25,70])
+plt.ylim([-1,10])
 plt.ylabel('Mean aSPv (°/s)')
-plt.xlabel('Target Speed (°/s)')
+plt.xlabel('True or estimated Target Speed (°/s)')
+plt.legend([ '','v11', 'vacc', 'v22', 'vdec','v33'])
 
 ax=plt.subplot(1,2,2)
 dt = mean_tw_integration.copy()
 dt.reset_index(inplace=True)
 dt['cond'] = [13 if 'Va' in x.condition else 31 for idx,x in dt.iterrows()]
 
-plt.title('Temporal Integration Window')
-sns.lineplot(data=dt, 
-             x="cond", y="tau", hue="subject",markers=True, palette = 'icefire')
-jitter = 0.5 * np.random.randn(len(dt))
-dt.cond = dt.cond + jitter
-sns.scatterplot(data=dt, 
-                x='cond',y='tau',hue='subject', palette='icefire', s=75)
-ax.set_xticks([13,31])
-ax.set_xticklabels(['vacc', 'vdec'])
-plt.xlim([0,40])
-plt.ylabel('Mean TIW (s)')
-plt.xlabel('Condition')
+plt.title('Temporal Window of Integration')
+# sns.lineplot(data=dt, 
+#              x="cond", y="tau", hue="subject",markers=True, palette = 'icefire')
+# jitter = 0.5 * np.random.randn(len(dt))
+# dt.cond = dt.cond + jitter
+# sns.scatterplot(data=dt, 
+#                 x='cond',y='tau',hue='subject', palette='icefire', s=75)
+sns.histplot(data=dt, x='tau', hue='cond',palette=colors100, kde=True)
+# ax.set_xticks([13,31])
+# ax.set_xticklabels(['vacc', 'vdec'])
+# plt.xlim([0,40])
+# plt.ylim([-1,1.5])
+# plt.ylabel('Mean TWI (s)')
+# plt.xlabel('Condition')
+plt.xlabel('Mean TWI (s)')
+plt.ylabel('Frequency')
 plt.legend([])
 plt.tight_layout()
 
-plt.savefig('allSubs_predictedTgVel_vs_antiVel_outlier.png')          
-# plt.savefig('allSubs_predictedTgVel_vs_antiVel.pdf')          
+plt.savefig('{}/exp2_twi_dist.png'.format(output_folder))          
+# plt.savefig('{}/exp2_twi.png'.format(output_folder))          
+# plt.savefig('{}/exp2_twi.pdf'.format(output_folder))          
+
+print('Va, tau - ttest against 0: \n', pg.ttest(dt.loc[dt.condition.isin(['Va-100_V0-0']),'tau'], 0, alternative='greater').round(4))
+print('Vd, tau - ttest against 0: \n', pg.ttest(dt.loc[dt.condition.isin(['Vd-100_V0-0']),'tau'], 0, alternative='greater').round(4))
+
 
 

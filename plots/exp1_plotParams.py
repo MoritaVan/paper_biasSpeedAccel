@@ -104,6 +104,29 @@ allSubsData = allSubsData[allSubsData['trial']>10]
 
 allSubsData.reset_index(inplace=True)
 
+# plot difference HS-LS
+anticipData = allSubsData.copy()
+# anticipData = anticipData.loc[~anticipData.cond_num.isin([0.0, 1.0]),['n1_tgVel','sub','cond_num','aSPv']]
+meanAntiData = anticipData.groupby(['sub', 'cond_num', 'n1_tgVel']).mean()
+
+for idx,row in meanAntiData.iterrows():
+    sub, cond, n1vel = idx
+    idxAnti = (anticipData['sub']==sub)&(anticipData['cond_num']==cond)&(anticipData['n1_tgVel']==n1vel)
+    anticipData.loc[idxAnti,'diff_aSPv-mean'] = anticipData.loc[idxAnti,'aSPv'] - row['aSPv']
+
+print(anticipData)
+f = plt.figure(figsize=(two_col,15*cm))
+idx=0
+for sub in anticipData['sub'].unique():
+    idx+=1
+    plt.subplot(3,1,idx)
+    sns.swarmplot(data=anticipData[anticipData['sub']==sub],
+                 x = 'cond_num', y = 'diff_aSPv-mean', hue='n1_tgVel', dodge=True, size=2)
+
+plt.savefig('{}/exp1_diff_aSPv-mean.png'.format(output_folder))
+# plt.savefig('{}/exp1_diff_HS-LS.pdf'.format(output_folder))
+
+dhasj
 # read LME results from csv generated on R
 lmm_dir = "{}/LMM".format(output_folder)
 lme_raneff     = pd.read_csv('{}/exp1_lmm_randomEffects.csv'.format(lmm_dir))
@@ -119,21 +142,22 @@ lme_fixeffAnti.fillna(0, inplace=True)
 lme_fixeffVGP.fillna(0, inplace=True)
 lme_raneff.fillna(0, inplace=True)
 
+# print(lme_fixeffAnti)
+# print(lme_fixeffVGP)
+# print(lme_raneff)
+
 anticipParams = [['aSPon','Anticipation Onset', [-200,-100], 'Horizontal aSPon (ms)'],
                  ['aSPv', 'Anticipatory Eye Velocity', [-2.5,9], 'Horizontal aSPv (°/s)'],
                 ]
 anticipData = allSubsData.groupby(['sub','cond_num','n1_tgVel']).mean()
 anticipData.reset_index(inplace=True)
 
-print(lme_fixeffAnti)
-print(lme_fixeffVGP)
-print(lme_raneff)
-
 idxHS   = [True if 'H' in x else False for x in anticipData['n1_tgVel']]
 idxLS = [not x for x in idxHS]
 
 idxHS = np.array(idxHS)
 idxLS = np.array(idxLS)
+
 
 for p in anticipParams:
     print(p[1])
