@@ -96,34 +96,50 @@ allSubsData.replace({"n1_tgVel": new_val}, inplace=True)
 allSubsData.reset_index(inplace=True)
 print(allSubsData.head())
 
-anticipData = allSubsData.groupby(['n1_tgVel','sub','prob']).mean()
-anticipData.reset_index(inplace=True)
+
+# plot difference HS-LS
+anticipData = allSubsData.copy()
 anticipData = anticipData.loc[~anticipData.prob.isin([0.0, 1.0]),['n1_tgVel','sub','prob','aSPv_x','aSPv_y']]
+meanAntiData   = anticipData.groupby(['sub', 'prob']).mean()
+meanAntiDataN1 = anticipData.groupby(['sub', 'prob', 'n1_tgVel']).mean()
+meanAntiDataN1.reset_index(inplace=True)
+print(meanAntiData)
+print(meanAntiDataN1)
+for idx,row in meanAntiData.iterrows():
+    sub, cond = idx
+    idxAnti = (meanAntiDataN1['sub']==sub)&(meanAntiDataN1['prob']==cond)
+    meanAntiDataN1.loc[idxAnti,'diff_aSPv-mean_x'] = meanAntiDataN1.loc[idxAnti,'aSPv_x'] - row['aSPv_x']
+    meanAntiDataN1.loc[idxAnti,'diff_aSPv-mean_y'] = meanAntiDataN1.loc[idxAnti,'aSPv_y'] - row['aSPv_y']
 
 
-diff_x = np.array(anticipData.loc[anticipData.n1_tgVel=='v33','aSPv_x'])-np.array(anticipData.loc[anticipData.n1_tgVel=='v11','aSPv_x'])
-diff_y = np.array(anticipData.loc[anticipData.n1_tgVel=='v33','aSPv_y'])-np.array(anticipData.loc[anticipData.n1_tgVel=='v11','aSPv_y'])
-diff_df = anticipData.loc[anticipData.n1_tgVel=='v33',['sub','prob']]
-diff_df['diff_v33-v11_x'] = diff_x
-diff_df['diff_v33-v11_y'] = diff_y
-print(diff_df)
 f = plt.figure(figsize=(two_col,6*cm))
 plt.subplot(1,2,1)
-sns.lineplot(data=diff_df,
-             x = 'prob', y = 'diff_v33-v11_x',
-             err_style="bars", markers=True)
-plt.ylim([0,1.3])
+sns.lineplot(data = meanAntiDataN1, x = 'prob', y = 'diff_aSPv-mean_x', hue='n1_tgVel',
+             units="sub", estimator=None,style="sub", palette={'v33':colorHS,'v11':colorLS}
+             )
+grandMean = meanAntiDataN1.groupby(['prob', 'n1_tgVel']).mean()
+grandMean.reset_index(inplace=True)
+sns.scatterplot(data=grandMean, x='prob', y='diff_aSPv-mean_x', hue='n1_tgVel',palette={'v33':colorHS,'v11':colorLS})
+plt.xlabel('P(v33)')
+plt.ylabel('Difference from mean aSPv -X axis')
+plt.xticks([0.3,0.7])
 plt.xlim([0,1])
-plt.subplot(1,2,2)
-sns.lineplot(data=diff_df,
-             x = 'prob', y = 'diff_v33-v11_y',
-             err_style="bars", markers=True)
-plt.ylim([0,1.3])
-plt.xlim([0,1])
-plt.savefig('{}/exp2_diff_v33-v11.png'.format(output_folder))
-plt.savefig('{}/exp2_diff_v33-v11.pdf'.format(output_folder))
 
-dhasj
+plt.subplot(1,2,2)
+sns.lineplot(data = meanAntiDataN1, x = 'prob', y = 'diff_aSPv-mean_y', hue='n1_tgVel',
+             units="sub", estimator=None,style="sub", palette={'v33':colorHS,'v11':colorLS}
+             )
+grandMean = meanAntiDataN1.groupby(['prob', 'n1_tgVel']).mean()
+grandMean.reset_index(inplace=True)
+sns.scatterplot(data=grandMean, x='prob', y='diff_aSPv-mean_y', hue='n1_tgVel',palette={'v33':colorHS,'v11':colorLS})
+plt.xlabel('P(v33)')
+plt.ylabel('Difference from mean aSPv -Y axis')
+plt.xticks([0.3,0.7])
+plt.xlim([0,1])
+plt.tight_layout()
+plt.savefig('{}/exp2_diff_aSPv-mean.png'.format(output_folder))
+plt.savefig('{}/exp2_diff_aSPv-mean.pdf'.format(output_folder))
+
 
 # read LME results from csv generated on R
 lmm_dir = "{}/LMM".format(output_folder)
@@ -143,11 +159,250 @@ lme_raneff.fillna(0, inplace=True)
 anticipParams = [['aSPon','Anticipation Onset', [-200,0], ' aSPon (ms)'],
                  ['aSPv', 'Anticipatory Eye Velocity', [-2.5,12], ' aSPv (°/s)'],
                 ]
+anticipData = allSubsData.groupby(['sub','prob']).mean()
+anticipData.reset_index(inplace=True)
+
+cmapSpacing = [0.05, 0.3, 0.7, 0.95]
+
+for p in anticipParams:
+    print(p[1])
+
+    intercept = lme_fixeffAnti.loc['Intercept',p[0]]
+    prob      = lme_fixeffAnti.loc['prob',p[0]]
+    axis      = lme_fixeffAnti.loc['axisvert.',p[0]]
+    prob_axis = lme_fixeffAnti.loc['prob:axisvert.',p[0]]
+    
+    f,ax1 = plt.subplots(figsize=(two_col, 6*cm))# width, height
+    plt.suptitle(p[1])
+
+    # X AXIS
+    var2plot = '{}_x'.format(p[0])
+    y_label = 'Horizontal {}'.format(p[3])
+    ax1 = plt.subplot(1,2,1)
+    ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
+    for sub in subjects:
+        raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
+        s_intercept = list(raneff['Intercept'])[0]
+        s_prob      = list(raneff['prob'])[0]
+        s_axis      = list(raneff['axis'])[0]
+        
+        reg = cond_num*(prob + s_prob) + (intercept + s_intercept)
+        ax1.plot(cond_num, reg, color='grey', alpha=0.5)
+    
+    plotBoxDispersion(data=anticipData, 
+                        by=['prob'], 
+                        between=var2plot, ax=ax2, alpha=0,
+                        cmapAlpha=1,
+                        scatterSize=25,
+                        jitter=.01,
+                        xticks= cond_num,
+                        boxWidth = .045,
+                        showfliers=False,
+                        showKde=False,
+                        cmapName='icefire',
+                        cmapValues=cmapSpacing)
+    plt.ylim(p[2])
+    ax1.set_xlabel('P(v33)')
+    ax1.set_ylabel(y_label)
+    ax1.set_xlim(np.array([-10,110])/100)
+    ax2.set_xlim(np.array([-10,110])/100)
+    ax1.set_xticks(cond_num)
+    ax1.set_xticklabels(cond_num)
+    ax2.set_xticks([])
+
+    # Y AXIS
+    var2plot = '{}_y'.format(p[0])
+    y_label = 'Vertical {}'.format(p[3])
+    ax1 = plt.subplot(1,2,2)
+    ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
+    for sub in subjects:
+        raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
+        s_intercept = list(raneff['Intercept'])[0]
+        s_prob      = list(raneff['prob'])[0]
+        s_axis      = list(raneff['axis'])[0]
+        
+        reg = cond_num*(prob_axis + prob + s_prob) + (axis + s_axis) + (intercept + s_intercept)
+        ax1.plot(cond_num, reg, color='grey', alpha=0.5)
+    
+    plotBoxDispersion(data=anticipData, 
+                        by=['prob'], 
+                        between=var2plot, ax=ax2, alpha=0,
+                        cmapAlpha=1,
+                        scatterSize=25,
+                        jitter=.01,
+                        xticks= cond_num,
+                        boxWidth = .045,
+                        showfliers=False,
+                        showKde=False,
+                        cmapName='icefire',
+                        cmapValues=cmapSpacing)
+    plt.ylim(p[2])
+    ax1.set_xlabel('P(v33)')
+    ax1.set_ylabel(y_label)
+    ax1.set_xlim(np.array([-10,110])/100)
+    ax2.set_xlim(np.array([-10,110])/100)
+    ax1.set_xticks(cond_num)
+    ax1.set_xticklabels(cond_num)
+    ax2.set_xticks([])
+    # ax1.legend(['N-1=v33', 'N-1=v11'])
+
+    plt.tight_layout()
+    plt.savefig('{}/exp2_condConst_group_{}.pdf'.format(output_folder, p[1]))
+    plt.savefig('{}/exp2_condConst_group_{}.png'.format(output_folder, p[1]))
+
+# visParams = [['SPlat','Latency', [70,170], 'SPlat (ms)'],
+#              ['SPacc', 'Pursuit Acceleration', [20,320], 'SPacc (°/s\N{SUPERSCRIPT TWO})'],
+#             #  ['SPss', 'Steady State', [4, 17], 'Horizontal SPss (°/s)'],
+#             ]
+# visData = allSubsData.groupby(['sub','prob','trial_velocity']).agg(np.nanmean)
+# visData.reset_index(inplace=True)
+
+# idxHS   = [True if '33' in x else False for x in visData['trial_velocity']]
+# idxLS = [not x for x in idxHS]
+
+# idxHS = np.array(idxHS)
+# idxLS = np.array(idxLS)
+
+# for p in visParams:
+#     print(p[1])
+
+#     intercept  = lme_fixeffVGP.loc['Intercept',p[0]]
+#     prob       = lme_fixeffVGP.loc['prob',p[0]]
+#     tgvel      = lme_fixeffVGP.loc['trial_velocityV1',p[0]]
+#     axis       = lme_fixeffVGP.loc['axisvert.',p[0]]
+#     prob_tgvel = lme_fixeffVGP.loc['trial_velocityV1:prob',p[0]]
+#     prob_axis  = lme_fixeffVGP.loc['prob:axisvert.',p[0]]
+#     axis_tgvel = lme_fixeffVGP.loc['trial_velocityV1:axisvert.',p[0]]
+#     prob_tgvel = lme_fixeffVGP.loc['trial_velocityV1:prob',p[0]]
+#     prob_tgvel_axis = lme_fixeffVGP.loc['trial_velocityV1:prob:axisvert.',p[0]]
+    
+#     fig1 = plt.subplots(figsize=(two_col, 6*cm)) # width, height
+#     plt.suptitle(p[1])
+#     # X AXIS
+#     var2plot = '{}_x'.format(p[0])
+#     y_label = 'Horizontal {}'.format(p[3])
+#     ax1 = plt.subplot(1,2,1)
+#     ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
+#     for sub in subjects:
+#         raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
+#         s_intercept = list(raneff['Intercept'])[0]
+#         s_prob      = list(raneff['prob'])[0]
+#         s_tgVel     = list(raneff['trial_velocity'])[0]
+#         s_axis      = list(raneff['axis'])[0]
+        
+#         reg_HS = cond_num[1:]*(prob + s_prob) + (intercept + s_intercept)
+#         reg_LS = cond_num[:-1]*(prob_tgvel + prob + s_prob) + (s_tgVel + tgvel) + (intercept + s_intercept)
+#         ax1.plot(cond_num[1:]+.03, reg_HS, color=colorHS, alpha=0.5)
+#         ax1.plot(cond_num[:-1]-.03, reg_LS, color=colorLS, alpha=0.5)
+    
+#     plotBoxDispersion(data=visData[idxHS], 
+#                         by=['prob'], 
+#                         between=var2plot, ax=ax2, alpha=0,
+#                         cmapAlpha=1,
+#                         scatterSize=25,
+#                         jitter=.01,
+#                         xticks= cond_num[1:]+.03,
+#                         boxWidth = .045,
+#                         showfliers=False,
+#                         showKde=False,
+#                         color = colorHS,
+#                         cmapName=None)
+#     plotBoxDispersion(data=visData[idxLS], 
+#                         by=['prob'], 
+#                         between=var2plot, ax=ax2, alpha=0,  
+#                         cmapAlpha=1,
+#                         boxWidth=.045,
+#                         xticks=cond_num[:-1]-.03,
+#                         scatterSize=25,
+#                         jitter=.01,
+#                         showfliers=False,
+#                         showKde=False,
+#                         color = colorLS,
+#                         cmapName=None)
+#     plt.ylim(p[2])
+#     ax1.set_xlabel('P(v33)')
+#     ax1.set_ylabel(y_label)
+#     ax1.set_xlim(np.array([-10,110])/100)
+#     ax2.set_xlim(np.array([-10,110])/100)
+#     ax1.set_xticks(cond_num)
+#     ax1.set_xticklabels(cond_num)
+#     ax2.set_xticks([])
+
+#     # Y AXIS
+#     var2plot = '{}_y'.format(p[0])
+#     y_label = 'Vertical {}'.format(p[3])
+#     ax1 = plt.subplot(1,2,2)
+#     ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
+#     for sub in subjects:
+#         raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
+#         s_intercept = list(raneff['Intercept'])[0]
+#         s_prob      = list(raneff['prob'])[0]
+#         s_tgVel     = list(raneff['trial_velocity'])[0]
+#         s_axis      = list(raneff['axis'])[0]
+        
+#         reg_HS = cond_num[1:]*(prob_axis + prob + s_prob) + (axis + s_axis) + (intercept + s_intercept)
+#         reg_LS = cond_num[:-1]*(prob_tgvel + prob_axis + prob_tgvel_axis + prob + s_prob) + (s_tgVel + tgvel) + (axis + axis_tgvel + s_axis) + (intercept + s_intercept)
+#         ax1.plot(cond_num[1:]+.03, reg_HS, color=colorHS, alpha=0.5)
+#         ax1.plot(cond_num[:-1]-.03, reg_LS, color=colorLS, alpha=0.5)
+    
+#     plotBoxDispersion(data=visData[idxHS], 
+#                         by=['prob'], 
+#                         between=var2plot, ax=ax2, alpha=0,
+#                         cmapAlpha=1,
+#                         scatterSize=25,
+#                         jitter=.01,
+#                         xticks= cond_num[1:]+.03,
+#                         boxWidth = .045,
+#                         showfliers=False,
+#                         showKde=False,
+#                         color = colorHS,
+#                         cmapName=None)
+#     plotBoxDispersion(data=visData[idxLS], 
+#                         by=['prob'], 
+#                         between=var2plot, ax=ax2, alpha=0,  
+#                         cmapAlpha=1,
+#                         boxWidth=.045,
+#                         xticks=cond_num[:-1]-.03,
+#                         scatterSize=25,
+#                         jitter=.01,
+#                         showfliers=False,
+#                         showKde=False,
+#                         color = colorLS,
+#                         cmapName=None)
+#     plt.ylim(p[2])
+#     ax1.set_xlabel('P(v33)')
+#     ax1.set_ylabel(y_label)
+#     ax1.set_xlim(np.array([-10,110])/100)
+#     ax2.set_xlim(np.array([-10,110])/100)
+#     ax1.set_xticks(cond_num)
+#     ax1.set_xticklabels(cond_num)
+#     ax2.set_xticks([])
+#     # ax.set_xlabels(conditions)
+#     # plt.xticks(rotation = 20)
+#     ax1.legend(['v33', 'v11'])
+   
+#     plt.tight_layout()
+    
+#     plt.savefig('{}/exp2_condConst_group_{}.pdf'.format(output_folder, p[1]))
+#     plt.savefig('{}/exp2_condConst_group_{}.png'.format(output_folder, p[1]))
+
+lmm_dir = "{}/LMM".format(output_folder)
+lme_raneff     = pd.read_csv('{}/exp2_condConst_lmm_n1Eff_randomEffects.csv'.format(lmm_dir))
+lme_fixeffAnti = pd.read_csv('{}/exp2_condConst_lmm_n1Eff_fixedeffectsAnti.csv'.format(lmm_dir))
+
+lme_fixeffAnti.at[0,'Unnamed: 0'] = 'Intercept'
+lme_fixeffAnti.set_index('Unnamed: 0', inplace=True)
+
+lme_fixeffAnti.fillna(0, inplace=True)
+lme_raneff.fillna(0, inplace=True)
+
+anticipParams = [['aSPon','Anticipation Onset', [-200,0], ' aSPon (ms)'],
+                 ['aSPv', 'Anticipatory Eye Velocity', [-2.5,12], ' aSPv (°/s)'],
+                ]
 anticipData = allSubsData.groupby(['sub','prob','n1_tgVel']).mean()
 anticipData.reset_index(inplace=True)
 print(anticipData)
 print(lme_fixeffAnti)
-print(lme_fixeffVGP)
 print(lme_raneff)
 
 idxHS   = [True if '33' in x else False for x in anticipData['n1_tgVel']]
@@ -274,141 +529,5 @@ for p in anticipParams:
     ax1.legend(['N-1=v33', 'N-1=v11'])
 
     plt.tight_layout()
-    plt.savefig('{}/exp2_condConst_group_{}.pdf'.format(output_folder, p[1]))
-    plt.savefig('{}/exp2_condConst_group_{}.png'.format(output_folder, p[1]))
-
-visParams = [['SPlat','Latency', [70,170], 'SPlat (ms)'],
-             ['SPacc', 'Pursuit Acceleration', [20,320], 'SPacc (°/s\N{SUPERSCRIPT TWO})'],
-            #  ['SPss', 'Steady State', [4, 17], 'Horizontal SPss (°/s)'],
-            ]
-visData = allSubsData.groupby(['sub','prob','trial_velocity']).agg(np.nanmean)
-visData.reset_index(inplace=True)
-
-idxHS   = [True if '33' in x else False for x in visData['trial_velocity']]
-idxLS = [not x for x in idxHS]
-
-idxHS = np.array(idxHS)
-idxLS = np.array(idxLS)
-
-for p in visParams:
-    print(p[1])
-
-    intercept  = lme_fixeffVGP.loc['Intercept',p[0]]
-    prob       = lme_fixeffVGP.loc['prob',p[0]]
-    tgvel      = lme_fixeffVGP.loc['trial_velocityV1',p[0]]
-    axis       = lme_fixeffVGP.loc['axisvert.',p[0]]
-    prob_tgvel = lme_fixeffVGP.loc['trial_velocityV1:prob',p[0]]
-    prob_axis  = lme_fixeffVGP.loc['prob:axisvert.',p[0]]
-    axis_tgvel = lme_fixeffVGP.loc['trial_velocityV1:axisvert.',p[0]]
-    prob_tgvel = lme_fixeffVGP.loc['trial_velocityV1:prob',p[0]]
-    prob_tgvel_axis = lme_fixeffVGP.loc['trial_velocityV1:prob:axisvert.',p[0]]
-    
-    fig1 = plt.subplots(figsize=(two_col, 6*cm)) # width, height
-    plt.suptitle(p[1])
-    # X AXIS
-    var2plot = '{}_x'.format(p[0])
-    y_label = 'Horizontal {}'.format(p[3])
-    ax1 = plt.subplot(1,2,1)
-    ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
-    for sub in subjects:
-        raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
-        s_intercept = list(raneff['Intercept'])[0]
-        s_prob      = list(raneff['prob'])[0]
-        s_tgVel     = list(raneff['trial_velocity'])[0]
-        s_axis      = list(raneff['axis'])[0]
-        
-        reg_HS = cond_num[1:]*(prob + s_prob) + (intercept + s_intercept)
-        reg_LS = cond_num[:-1]*(prob_tgvel + prob + s_prob) + (s_tgVel + tgvel) + (intercept + s_intercept)
-        ax1.plot(cond_num[1:]+.03, reg_HS, color=colorHS, alpha=0.5)
-        ax1.plot(cond_num[:-1]-.03, reg_LS, color=colorLS, alpha=0.5)
-    
-    plotBoxDispersion(data=visData[idxHS], 
-                        by=['prob'], 
-                        between=var2plot, ax=ax2, alpha=0,
-                        cmapAlpha=1,
-                        scatterSize=25,
-                        jitter=.01,
-                        xticks= cond_num[1:]+.03,
-                        boxWidth = .045,
-                        showfliers=False,
-                        showKde=False,
-                        color = colorHS,
-                        cmapName=None)
-    plotBoxDispersion(data=visData[idxLS], 
-                        by=['prob'], 
-                        between=var2plot, ax=ax2, alpha=0,  
-                        cmapAlpha=1,
-                        boxWidth=.045,
-                        xticks=cond_num[:-1]-.03,
-                        scatterSize=25,
-                        jitter=.01,
-                        showfliers=False,
-                        showKde=False,
-                        color = colorLS,
-                        cmapName=None)
-    plt.ylim(p[2])
-    ax1.set_xlabel('P(v33)')
-    ax1.set_ylabel(y_label)
-    ax1.set_xlim(np.array([-10,110])/100)
-    ax2.set_xlim(np.array([-10,110])/100)
-    ax1.set_xticks(cond_num)
-    ax1.set_xticklabels(cond_num)
-    ax2.set_xticks([])
-
-    # Y AXIS
-    var2plot = '{}_y'.format(p[0])
-    y_label = 'Vertical {}'.format(p[3])
-    ax1 = plt.subplot(1,2,2)
-    ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
-    for sub in subjects:
-        raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
-        s_intercept = list(raneff['Intercept'])[0]
-        s_prob      = list(raneff['prob'])[0]
-        s_tgVel     = list(raneff['trial_velocity'])[0]
-        s_axis      = list(raneff['axis'])[0]
-        
-        reg_HS = cond_num[1:]*(prob_axis + prob + s_prob) + (axis + s_axis) + (intercept + s_intercept)
-        reg_LS = cond_num[:-1]*(prob_tgvel + prob_axis + prob_tgvel_axis + prob + s_prob) + (s_tgVel + tgvel) + (axis + axis_tgvel + s_axis) + (intercept + s_intercept)
-        ax1.plot(cond_num[1:]+.03, reg_HS, color=colorHS, alpha=0.5)
-        ax1.plot(cond_num[:-1]-.03, reg_LS, color=colorLS, alpha=0.5)
-    
-    plotBoxDispersion(data=visData[idxHS], 
-                        by=['prob'], 
-                        between=var2plot, ax=ax2, alpha=0,
-                        cmapAlpha=1,
-                        scatterSize=25,
-                        jitter=.01,
-                        xticks= cond_num[1:]+.03,
-                        boxWidth = .045,
-                        showfliers=False,
-                        showKde=False,
-                        color = colorHS,
-                        cmapName=None)
-    plotBoxDispersion(data=visData[idxLS], 
-                        by=['prob'], 
-                        between=var2plot, ax=ax2, alpha=0,  
-                        cmapAlpha=1,
-                        boxWidth=.045,
-                        xticks=cond_num[:-1]-.03,
-                        scatterSize=25,
-                        jitter=.01,
-                        showfliers=False,
-                        showKde=False,
-                        color = colorLS,
-                        cmapName=None)
-    plt.ylim(p[2])
-    ax1.set_xlabel('P(v33)')
-    ax1.set_ylabel(y_label)
-    ax1.set_xlim(np.array([-10,110])/100)
-    ax2.set_xlim(np.array([-10,110])/100)
-    ax1.set_xticks(cond_num)
-    ax1.set_xticklabels(cond_num)
-    ax2.set_xticks([])
-    # ax.set_xlabels(conditions)
-    # plt.xticks(rotation = 20)
-    ax1.legend(['v33', 'v11'])
-   
-    plt.tight_layout()
-    
-    plt.savefig('{}/exp2_condConst_group_{}.pdf'.format(output_folder, p[1]))
-    plt.savefig('{}/exp2_condConst_group_{}.png'.format(output_folder, p[1]))
+    plt.savefig('{}/exp2_condConst_group_n1Eff_{}.pdf'.format(output_folder, p[1]))
+    plt.savefig('{}/exp2_condConst_group_n1Eff_{}.png'.format(output_folder, p[1]))

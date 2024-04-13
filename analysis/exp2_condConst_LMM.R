@@ -100,6 +100,83 @@ qqnorm(aSPon_lmm, ~ resid(., type = "p") | sub, abline = c(0, 1))
 hist(resid(aSPon_lmm))
 
 
+df_plot <- df
+
+df_plot$n1_vel <- as.factor(df_plot$n1_vel)
+df_plot$prob <- as.factor(df_plot$prob)
+
+p1 <- ggplot(df_plot, aes(x=prob, y=aSPv, fill=n1_vel)) + 
+  geom_boxplot()
+p1
+
+randomeffects <- data.frame(
+  rbind.fill(ranef(aSPon_lmm),
+             ranef(aSPv_lmm)
+  ))
+
+colnames(randomeffects) <- c('Intercept', 'prob', 'n1_tgVel', 'axis')
+v1 <- unique(df$sub)
+randomeffects$sub <- c(v1,v1)
+randomeffects$var <- c(rep("aSPon", length(v1)), 
+                       rep("aSPv", length(v1)))
+
+columns = c("aSPon","aSPv")
+fixedeffectsAnti <- data.frame(
+  c1 <- fixef(aSPon_lmm),
+  c2 <- fixef(aSPv_lmm)
+)
+colnames(fixedeffectsAnti) <- columns
+
+write.csv(randomeffects, 'LMM/exp2_condConst_lmm_n1Eff_randomEffects.csv')
+write.csv(fixedeffectsAnti, 'LMM/exp2_condConst_lmm_n1Eff_fixedeffectsAnti.csv')
+
+rSA <- ranef(aSPon_lmm)
+colnames(rSA) <- c("Constant", "P(V3)", "N-1 vel[V1]", 'Axis[vert.]')
+rAV <- ranef(aSPv_lmm)
+colnames(rAV) <- c("Constant", "P(V3)", "N-1 vel[V1]", 'Axis[vert.]')
+
+
+starAnti.out <- stargazer(aSPon_lmm,aSPv_lmm,
+                          out='LMM/exp2_condConst_lmmResults_n1Eff_antiParams.html', 
+                          title='Anticipatory Parameters',
+                          single.row=FALSE,
+                          report = "vc*stp",
+                          star.cutoffs = c(.01, .001, .0001),
+                          ci=TRUE, ci.level=0.95, digits=3,
+                          model.numbers = FALSE,
+                          omit.stat=c("LL","ser","f", 'aic', 'bic'),
+                          keep.stat = c("rsq","f"),
+                          add.lines = formatRanef(rSA,rAV),
+                          dep.var.labels = c("aSPon", "aSPv"),
+                          covariate.labels = c(
+                            "N-1 vel[V1]",
+                            "P(V3)", 
+                            "Axis[vert.]",
+                            "N-1 vel[V1]:P(V3)",
+                            "N-1 vel[V1]:Axis[vert.]",
+                            "P(V3):Axis[vert.]",
+                            "N-1 vel[V1]:P(V3):Axis[vert.]",
+                            'Constant'))
+
+
+#######################################
+
+
+aSPv_lmm <- lme(aSPv ~ 1 + prob*axis,
+                random = list(sub = ~ 1 + prob  + axis),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
+                data=df)
+summary(aSPv_lmm)
+qqnorm(aSPv_lmm, ~ resid(., type = "p") | sub, abline = c(0, 1))
+hist(resid(aSPv_lmm))
+
+aSPon_lmm <- lme(aSPon ~ 1 + prob*axis,
+                 random = list(sub = ~ 1 + prob + axis),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
+                 data=df)
+summary(aSPon_lmm)
+qqnorm(aSPon_lmm, ~ resid(., type = "p") | sub, abline = c(0, 1))
+hist(resid(aSPon_lmm))
+
+
 SPlat_lmm <- lme(SPlat ~ 1 + trial_velocity*prob*axis,
                  random = list(sub = ~ 1 + prob + trial_velocity + axis),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
                  data=df)
@@ -116,15 +193,6 @@ qqnorm(SPacc_lmm, ~ resid(., type = "p") | sub, abline = c(0, 1))
 hist(resid(SPacc_lmm))
 
 
-df_plot <- df
-
-df_plot$n1_vel <- as.factor(df_plot$n1_vel)
-df_plot$prob <- as.factor(df_plot$prob)
-
-p1 <- ggplot(df_plot, aes(x=prob, y=aSPv, fill=n1_vel)) + 
-  geom_boxplot()
-p1
-
 randomeffects <- data.frame(
   rbind.fill(ranef(aSPon_lmm),
              ranef(aSPv_lmm),
@@ -132,7 +200,7 @@ randomeffects <- data.frame(
              ranef(SPacc_lmm)
   ))
 
-colnames(randomeffects) <- c('Intercept', 'prob', 'n1_tgVel', 'axis','trial_velocity')
+colnames(randomeffects) <- c('Intercept', 'prob', 'axis','trial_velocity')
 v1 <- unique(df$sub)
 randomeffects$sub <- c(v1,v1,v1,v1)
 randomeffects$var <- c(rep("aSPon", length(v1)), 
@@ -159,12 +227,10 @@ write.csv(fixedeffectsAnti, 'LMM/exp2_condConst_lmm_fixedeffectsAnti.csv')
 write.csv(fixedeffectsVGP, 'LMM/exp2_condConst_lmm_fixedeffectsVGP.csv')
 
 
-
-
 rSA <- ranef(aSPon_lmm)
-colnames(rSA) <- c("Constant", "P(V3)", "N-1 vel[V1]", 'Axis[vert.]')
+colnames(rSA) <- c("Constant", "P(V3)",'Axis[vert.]')
 rAV <- ranef(aSPv_lmm)
-colnames(rAV) <- c("Constant", "P(V3)", "N-1 vel[V1]", 'Axis[vert.]')
+colnames(rAV) <- c("Constant", "P(V3)", 'Axis[vert.]')
 rLA <- ranef(SPlat_lmm)
 colnames(rLA) <- c("Constant", "P(V3)", "Trial vel[V1]", 'Axis[vert.]')
 rPA <- ranef(SPacc_lmm)
@@ -176,7 +242,7 @@ starAnti.out <- stargazer(aSPon_lmm,aSPv_lmm,
                           title='Anticipatory Parameters',
                           single.row=FALSE,
                           report = "vc*stp",
-                          star.cutoffs = c(.001, .0001, .00001),
+                          star.cutoffs = c(.01, .001, .0001),
                           ci=TRUE, ci.level=0.95, digits=3,
                           model.numbers = FALSE,
                           omit.stat=c("LL","ser","f", 'aic', 'bic'),
@@ -187,10 +253,7 @@ starAnti.out <- stargazer(aSPon_lmm,aSPv_lmm,
                             "N-1 vel[V1]",
                             "P(V3)", 
                             "Axis[vert.]",
-                            "N-1 vel[V1]:P(V3)",
-                            "N-1 vel[V1]:Axis[vert.]",
                             "P(V3):Axis[vert.]",
-                            "N-1 vel[V1]:P(V3):Axis[vert.]",
                             'Constant'))
 
 
@@ -199,7 +262,7 @@ starVGP.out <- stargazer(SPlat_lmm,SPacc_lmm,
                          title='Visually Guided Parameters',
                          single.row=FALSE,
                          report = "vc*stp",
-                         star.cutoffs = c(.001, .0001, .00001),
+                         star.cutoffs = c(.01, .001, .0001),
                          ci=TRUE, ci.level=0.95, digits=3,
                          model.numbers = FALSE,
                          omit.stat=c("LL","ser","f", 'aic', 'bic'),

@@ -236,7 +236,7 @@ starAnti.out <- stargazer(aSPon_lmm,aSPv_lmm,
                           title='Anticipatory Parameters',
                           single.row=FALSE,
                           report = "vc*stp",
-                          star.cutoffs = c(.001, .0001, .00001),
+                          star.cutoffs = c(.01, .001, .0001),
                           ci=TRUE, ci.level=0.95, digits=3,
                           model.numbers = FALSE,
                           omit.stat=c("LL","ser","f", 'aic', 'bic'),
@@ -259,7 +259,7 @@ starVGP.out <- stargazer(SPlat_lmm,SPacc_lmm,
                          title='Visually Guided Parameters',
                          single.row=FALSE,
                          report = "vc*stp",
-                         star.cutoffs = c(.001, .0001, .00001),
+                         star.cutoffs = c(.01, .001, .0001),
                          ci=TRUE, ci.level=0.95, digits=3,
                          model.numbers = FALSE,
                          omit.stat=c("LL","ser","f", 'aic', 'bic'),
@@ -278,8 +278,8 @@ starVGP.out <- stargazer(SPlat_lmm,SPacc_lmm,
 
 
 ###############################################
-aSPv_lmm <- lme(aSPv ~ 1 + condition,
-                random = list(sub = ~ 1 + condition),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
+aSPv_lmm <- lme(aSPv ~ 1 + condition*axis,
+                random = list(sub = ~ 1 + condition+axis),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
                 data=dataAll)
 summary(aSPv_lmm)
 contrast(emmeans(aSPv_lmm, specs="condition"), "pairwise", adjust='none')

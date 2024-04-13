@@ -232,7 +232,7 @@ def old_plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=No
 def plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=None, ax=None, 
                       jitter=.125, scatterSize:int=.5, boxWidth:float=5., showfliers:bool=True, alpha:int=10, 
                       showKde:bool=True, showBox:bool=True, 
-                      xticks=None, cmapName:str='winter', color=None, cmap=None, cmapAlpha=.5) -> None:
+                      xticks=None, cmapName:str='winter', cmapValues=None, color=None, cmap=None, cmapAlpha=.5) -> None:
     '''
     ----------------------------------
     Created by Cristiano Azarias, 2020
@@ -263,11 +263,10 @@ def plotBoxDispersion(data, by:str, between:str, groups=None, groupsNames=None, 
     if color is None:
         if cmap is None:
             cmap = plt.get_cmap(cmapName) #timing_cmap() # Load colormap
-            colors = cmap(np.linspace(.3, .6, n_groups)) # Set colors based on the group length
-            # colors50 = np.copy(colors) # Colors copy
-            # colors50[:,-1] = .7 # Decrease opacity
-            # colors80 = np.copy(colors)
-            # colors80[:,-1] = .9 # Decrease opacity
+            if cmapValues is None:
+                colors = cmap(np.linspace(.3, .6, n_groups)) # Set colors based on the group length
+            else:
+                colors = cmap(cmapValues)
         else:
             colors = cmap
     else:

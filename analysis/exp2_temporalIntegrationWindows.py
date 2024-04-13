@@ -257,10 +257,15 @@ dt_std  =  data2plot.groupby(['condition']).std().reset_index()
 dt_mean = dt_mean[dt_mean['condition'].isin([13,31])]
 dt_std  = dt_std[dt_std['condition'].isin([13,31])]
 
-fig = plt.figure(figsize=(two_col, 8*cm))
-ax = plt.subplot(1,2,1)
-plt.title('Target speed vs aSPv')
-sns.scatterplot(data=data2plot, x='meanPredTgVel',y='meanAntiVel',hue='condition', palette=colors100, s=75, ax=ax)
+fig = plt.figure(figsize=(two_col, 7*cm))
+ax = fig.add_gridspec(1, 9)
+ax1 = fig.add_subplot(ax[0, 0:4])
+ax1.set_title('Target speed vs aSPv')
+
+
+# ax = plt.subplot(1,2,1)
+# plt.title()
+sns.scatterplot(data=data2plot, x='meanPredTgVel',y='meanAntiVel',hue='condition', palette=colors100, s=50, ax=ax1)
 plt.errorbar(x=dt_mean['meanPredTgVel'],y=dt_mean['meanAntiVel'],
                         xerr=dt_std['meanPredTgVel'],yerr=dt_std['meanAntiVel'],
                         ecolor=reds2,elinewidth=3,fmt='none')
@@ -271,28 +276,36 @@ plt.ylabel('Mean aSPv (°/s)')
 plt.xlabel('True or estimated Target Speed (°/s)')
 plt.legend([ '','v11', 'vacc', 'v22', 'vdec','v33'])
 
-ax=plt.subplot(1,2,2)
 dt = mean_tw_integration.copy()
 dt.reset_index(inplace=True)
 dt['cond'] = [13 if 'Va' in x.condition else 31 for idx,x in dt.iterrows()]
+jitter = 0.5 * np.random.randn(len(dt))
+dt['cond2'] = dt.cond + jitter
 
-plt.title('Temporal Window of Integration')
-# sns.lineplot(data=dt, 
-#              x="cond", y="tau", hue="subject",markers=True, palette = 'icefire')
-# jitter = 0.5 * np.random.randn(len(dt))
-# dt.cond = dt.cond + jitter
-# sns.scatterplot(data=dt, 
-#                 x='cond',y='tau',hue='subject', palette='icefire', s=75)
+ax2 = fig.add_subplot(ax[0, 4:6])
+# ax2.set_title('[0:, -1]')
+
+# ax=plt.subplot(1,6,4)
+# plt.title('Temporal Window of Integration')
+sns.lineplot(data=dt, 
+             x="cond", y="tau", hue="subject",markers=True, palette = 'icefire')
+sns.scatterplot(data=dt, 
+                x='cond2',y='tau',hue='subject', palette='icefire', s=50)
+ax2.set_xticks([13,31])
+ax2.set_xticklabels(['vacc', 'vdec'])
+plt.xlim([0,40])
+plt.ylim([-1,1.5])
+plt.ylabel('Mean TWI (s)')
+plt.xlabel('Condition')
+plt.legend([])
+
+ax3 = fig.add_subplot(ax[0, 6:9])
+ax3.set_title('Temporal Window of Integration')
+# ax=plt.subplot(1,6,[5,6])
+# plt.title('Temporal Window of Integration')
 sns.histplot(data=dt, x='tau', hue='cond',palette=colors100, kde=True)
-# ax.set_xticks([13,31])
-# ax.set_xticklabels(['vacc', 'vdec'])
-# plt.xlim([0,40])
-# plt.ylim([-1,1.5])
-# plt.ylabel('Mean TWI (s)')
-# plt.xlabel('Condition')
 plt.xlabel('Mean TWI (s)')
 plt.ylabel('Frequency')
-plt.legend([])
 plt.tight_layout()
 
 plt.savefig('{}/exp2_twi_dist.png'.format(output_folder))          

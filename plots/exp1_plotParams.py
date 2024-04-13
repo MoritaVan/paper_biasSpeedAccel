@@ -106,27 +106,34 @@ allSubsData.reset_index(inplace=True)
 
 # plot difference HS-LS
 anticipData = allSubsData.copy()
-# anticipData = anticipData.loc[~anticipData.cond_num.isin([0.0, 1.0]),['n1_tgVel','sub','cond_num','aSPv']]
-meanAntiData = anticipData.groupby(['sub', 'cond_num', 'n1_tgVel']).mean()
-
+anticipData = anticipData.loc[~anticipData.cond_num.isin([0.0, 1.0]),['n1_tgVel','sub','cond_num','aSPv']]
+meanAntiData   = anticipData.groupby(['sub', 'cond_num']).mean()
+meanAntiDataN1 = anticipData.groupby(['sub', 'cond_num', 'n1_tgVel']).mean()
+meanAntiDataN1.reset_index(inplace=True)
+print(meanAntiData)
+print(meanAntiDataN1)
 for idx,row in meanAntiData.iterrows():
-    sub, cond, n1vel = idx
-    idxAnti = (anticipData['sub']==sub)&(anticipData['cond_num']==cond)&(anticipData['n1_tgVel']==n1vel)
-    anticipData.loc[idxAnti,'diff_aSPv-mean'] = anticipData.loc[idxAnti,'aSPv'] - row['aSPv']
+    sub, cond = idx
+    idxAnti = (meanAntiDataN1['sub']==sub)&(meanAntiDataN1['cond_num']==cond)
+    meanAntiDataN1.loc[idxAnti,'diff_aSPv-mean'] = meanAntiDataN1.loc[idxAnti,'aSPv'] - row['aSPv']
 
-print(anticipData)
-f = plt.figure(figsize=(two_col,15*cm))
-idx=0
-for sub in anticipData['sub'].unique():
-    idx+=1
-    plt.subplot(3,1,idx)
-    sns.swarmplot(data=anticipData[anticipData['sub']==sub],
-                 x = 'cond_num', y = 'diff_aSPv-mean', hue='n1_tgVel', dodge=True, size=2)
-
+f = plt.figure(figsize=(single_col,6*cm))
+sns.lineplot(data = meanAntiDataN1, x = 'cond_num', y = 'diff_aSPv-mean', hue='n1_tgVel',
+             units="sub", estimator=None,style="sub", palette={'HS':colorHS,'LS':colorLS}
+             )
+grandMean = meanAntiDataN1.groupby(['cond_num', 'n1_tgVel']).mean()
+grandMean.reset_index(inplace=True)
+sns.scatterplot(data=grandMean, x='cond_num', y='diff_aSPv-mean', hue='n1_tgVel',palette={'HS':colorHS,'LS':colorLS})
+plt.xlabel('P(HS)')
+plt.ylabel('Difference from mean aSPv')
+plt.xticks(cond_num[1:-1])
+plt.xlim([0,1])
+plt.tight_layout()
 plt.savefig('{}/exp1_diff_aSPv-mean.png'.format(output_folder))
+plt.savefig('{}/exp1_diff_aSPv-mean.pdf'.format(output_folder))
 # plt.savefig('{}/exp1_diff_HS-LS.pdf'.format(output_folder))
 
-dhasj
+
 # read LME results from csv generated on R
 lmm_dir = "{}/LMM".format(output_folder)
 lme_raneff     = pd.read_csv('{}/exp1_lmm_randomEffects.csv'.format(lmm_dir))
@@ -144,6 +151,147 @@ lme_raneff.fillna(0, inplace=True)
 
 # print(lme_fixeffAnti)
 # print(lme_fixeffVGP)
+# print(lme_raneff)
+
+anticipParams = [['aSPon','Anticipation Onset', [-200,-100], 'Horizontal aSPon (ms)'],
+                 ['aSPv', 'Anticipatory Eye Velocity', [-2.5,9], 'Horizontal aSPv (°/s)'],
+                ]
+anticipData = allSubsData.groupby(['sub','cond_num']).mean()
+anticipData.reset_index(inplace=True)
+cmapSpacing = [0.05, 0.12, 0.25, 0.5, 0.75, 0.88, 0.95]
+
+for p in anticipParams:
+    print(p[1])
+
+    intercept = lme_fixeffAnti.loc['Intercept',p[0]]
+    prob      = lme_fixeffAnti.loc['prob',p[0]]
+    
+    # fig1 = plt.figure(figsize=(single_col*0.5, 3*cm)) 
+    f,ax1 = plt.subplots(figsize=(single_col, 6*cm))# width, height
+    plt.suptitle(p[1])
+    ax1 = plt.subplot(1,1,1)
+    ax2 = ax1.twiny() # applies twinx to ax2, which is the second y axis.
+    for sub in subjects:
+        raneff      = lme_raneff.loc[(lme_raneff['sub']==sub)&(lme_raneff['var']==p[0])]
+        s_intercept = list(raneff['Intercept'])[0]
+        s_prob      = list(raneff['prob'])[0]
+        
+        reg = cond_num*(prob + s_prob) + (intercept + s_intercept)
+        ax1.plot(cond_num, reg, color='grey', alpha=0.5)
+    
+    plotBoxDispersion(data=anticipData, 
+                        by=['cond_num'], 
+                        between=p[0], ax=ax2, alpha=0,
+                        cmapAlpha=1,
+                        scatterSize=25,
+                        jitter=.01,
+                        xticks= cond_num,
+                        boxWidth = .045,
+                        showfliers=False,
+                        showKde=False,
+                        cmapName='icefire',
+                        cmapValues=cmapSpacing)
+    plt.ylim(p[2])
+    ax1.set_xlabel('P(HS)')
+    ax1.set_ylabel(p[3])
+    ax1.set_xlim(np.array([-10,110])/100)
+    ax2.set_xlim(np.array([-10,110])/100)
+    ax1.set_xticks(cond_num)
+    ax1.set_xticklabels(cond_num)
+    ax2.set_xticks([])
+
+    plt.tight_layout()
+    plt.savefig('{}/exp1_group_{}.pdf'.format(output_folder, p[1]))
+    plt.savefig('{}/exp1_group_{}.png'.format(output_folder, p[1]))
+
+# visParams = [['SPlat','Latency', [75,125], 'Horizontal SPlat (ms)'],
+#              ['SPacc', 'Pursuit Acceleration', [35,150], 'Horizontal SPacc (°/s\N{SUPERSCRIPT TWO})'],
+#             #  ['SPss', 'Steady State', [4, 17], 'Horizontal SPss (°/s)'],
+#             ]
+# visData = allSubsData.groupby(['sub','cond_num','trial_velocity']).agg(np.nanmean)
+# visData.reset_index(inplace=True)
+
+# idxHS   = [True if 'H' in x else False for x in visData['trial_velocity']]
+# idxLS = [not x for x in idxHS]
+
+# idxHS = np.array(idxHS)
+# idxLS = np.array(idxLS)
+
+# for p in visParams:
+#     print(p[1])
+
+#     intercept  = lme_fixeffVGP.loc['Intercept',p[0]]
+#     prob       = lme_fixeffVGP.loc['prob',p[0]]
+#     tgvel      = lme_fixeffVGP.loc['trial_velocityLS',p[0]]
+#     prob_tgvel = lme_fixeffVGP.loc['trial_velocityLS:prob',p[0]]
+    
+#     fig1 = plt.subplots(figsize=(single_col, 6*cm)) # width, height
+#     plt.suptitle(p[1])
+#     ax1 = plt.subplot(1,1,1) 
+#     ax2 = ax1.twiny() 
+#     for sub in subjects:
+#         raneff      = lme_raneff.loc[(lme_raneff['sub']==sub)&(lme_raneff['var']==p[0])]
+#         s_intercept = list(raneff['Intercept'])[0]
+#         s_prob      = list(raneff['prob'])[0]
+#         s_tgvel     = list(raneff['trial_velocity'])[0]
+        
+#         regHS = (prob+s_prob)*cond_num[1:] + (tgvel+s_tgvel)*0 + prob_tgvel*0*cond_num[1:] + (intercept+s_intercept)
+#         regLS = (prob+s_prob)*cond_num[:-1] + (tgvel+s_tgvel)*1 + prob_tgvel*1*cond_num[:-1] + (intercept+s_intercept)
+#         ax1.plot(cond_num[1:]+.03, regHS, color=colorHS, alpha=0.7)
+#         ax1.plot(cond_num[:-1]-.03, regLS, color=colorLS, alpha=0.7)
+#     plotBoxDispersion(data=visData[idxHS], 
+#                         by=['cond_num'], 
+#                         between=p[0], ax=ax2, alpha=0,
+#                         cmapAlpha=1,
+#                         scatterSize=25,
+#                         jitter=.01,
+#                         xticks= cond_num[1:]+.03,
+#                         boxWidth = .045,
+#                         showfliers=False,
+#                         showKde=False,
+#                         color=colorHS,
+#                         cmapName=None)
+#     plotBoxDispersion(data=visData[idxLS], 
+#                         by=['cond_num'], 
+#                         between=p[0], ax=ax2, alpha=0,  
+#                         cmapAlpha=1,
+#                         boxWidth=.045,
+#                         xticks=cond_num[:-1]-.03,
+#                         scatterSize=25,
+#                         jitter=.01,
+#                         showfliers=False,
+#                         showKde=False,
+#                         color=colorLS,
+#                         cmapName=None)
+    
+#     # plt.ylim(p[2])
+#     ax1.set_xlabel('P(HS)')
+#     ax1.set_ylabel(p[3])
+#     ax1.set_xlim(np.array([-10,110])/100)
+#     ax2.set_xlim(np.array([-10,110])/100)
+#     ax1.set_xticks(cond_num)
+#     ax1.set_xticklabels(cond_num)
+#     ax2.set_xticks([])
+#     # ax.set_xlabels(conditions)
+#     # plt.xticks(rotation = 20)
+#     ax1.legend(['HS', 'LS'])
+   
+#     plt.tight_layout()
+    
+#     plt.savefig('{}/exp1_group_{}.pdf'.format(output_folder, p[1]))
+#     plt.savefig('{}/exp1_group_{}.png'.format(output_folder, p[1]))
+
+lmm_dir = "{}/LMM".format(output_folder)
+lme_raneff     = pd.read_csv('{}/exp1_lmm_n1Eff_randomEffects.csv'.format(lmm_dir))
+lme_fixeffAnti = pd.read_csv('{}/exp1_lmm_n1Eff_fixedeffectsAnti.csv'.format(lmm_dir))
+
+lme_fixeffAnti.at[0,'Unnamed: 0'] = 'Intercept'
+lme_fixeffAnti.set_index('Unnamed: 0', inplace=True)
+
+lme_fixeffAnti.fillna(0, inplace=True)
+lme_raneff.fillna(0, inplace=True)
+
+# print(lme_fixeffAnti)
 # print(lme_raneff)
 
 anticipParams = [['aSPon','Anticipation Onset', [-200,-100], 'Horizontal aSPon (ms)'],
@@ -218,82 +366,5 @@ for p in anticipParams:
     ax1.legend(['N-1=HS', 'N-1=LS'])
 
     plt.tight_layout()
-    plt.savefig('{}/exp1_group_{}.pdf'.format(output_folder, p[1]))
-    plt.savefig('{}/exp1_group_{}.png'.format(output_folder, p[1]))
-
-visParams = [['SPlat','Latency', [75,125], 'Horizontal SPlat (ms)'],
-             ['SPacc', 'Pursuit Acceleration', [35,150], 'Horizontal SPacc (°/s\N{SUPERSCRIPT TWO})'],
-            #  ['SPss', 'Steady State', [4, 17], 'Horizontal SPss (°/s)'],
-            ]
-visData = allSubsData.groupby(['sub','cond_num','trial_velocity']).agg(np.nanmean)
-visData.reset_index(inplace=True)
-
-idxHS   = [True if 'H' in x else False for x in visData['trial_velocity']]
-idxLS = [not x for x in idxHS]
-
-idxHS = np.array(idxHS)
-idxLS = np.array(idxLS)
-
-for p in visParams:
-    print(p[1])
-
-    intercept  = lme_fixeffVGP.loc['Intercept',p[0]]
-    prob       = lme_fixeffVGP.loc['prob',p[0]]
-    tgvel      = lme_fixeffVGP.loc['trial_velocityLS',p[0]]
-    prob_tgvel = lme_fixeffVGP.loc['trial_velocityLS:prob',p[0]]
-    
-    fig1 = plt.subplots(figsize=(single_col, 6*cm)) # width, height
-    plt.suptitle(p[1])
-    ax1 = plt.subplot(1,1,1) 
-    ax2 = ax1.twiny() 
-    for sub in subjects:
-        raneff      = lme_raneff.loc[(lme_raneff['sub']==sub)&(lme_raneff['var']==p[0])]
-        s_intercept = list(raneff['Intercept'])[0]
-        s_prob      = list(raneff['prob'])[0]
-        s_tgvel     = list(raneff['trial_velocity'])[0]
-        
-        regHS = (prob+s_prob)*cond_num[1:] + (tgvel+s_tgvel)*0 + prob_tgvel*0*cond_num[1:] + (intercept+s_intercept)
-        regLS = (prob+s_prob)*cond_num[:-1] + (tgvel+s_tgvel)*1 + prob_tgvel*1*cond_num[:-1] + (intercept+s_intercept)
-        ax1.plot(cond_num[1:]+.03, regHS, color=colorHS, alpha=0.7)
-        ax1.plot(cond_num[:-1]-.03, regLS, color=colorLS, alpha=0.7)
-    plotBoxDispersion(data=visData[idxHS], 
-                        by=['cond_num'], 
-                        between=p[0], ax=ax2, alpha=0,
-                        cmapAlpha=1,
-                        scatterSize=25,
-                        jitter=.01,
-                        xticks= cond_num[1:]+.03,
-                        boxWidth = .045,
-                        showfliers=False,
-                        showKde=False,
-                        color=colorHS,
-                        cmapName=None)
-    plotBoxDispersion(data=visData[idxLS], 
-                        by=['cond_num'], 
-                        between=p[0], ax=ax2, alpha=0,  
-                        cmapAlpha=1,
-                        boxWidth=.045,
-                        xticks=cond_num[:-1]-.03,
-                        scatterSize=25,
-                        jitter=.01,
-                        showfliers=False,
-                        showKde=False,
-                        color=colorLS,
-                        cmapName=None)
-    
-    # plt.ylim(p[2])
-    ax1.set_xlabel('P(HS)')
-    ax1.set_ylabel(p[3])
-    ax1.set_xlim(np.array([-10,110])/100)
-    ax2.set_xlim(np.array([-10,110])/100)
-    ax1.set_xticks(cond_num)
-    ax1.set_xticklabels(cond_num)
-    ax2.set_xticks([])
-    # ax.set_xlabels(conditions)
-    # plt.xticks(rotation = 20)
-    ax1.legend(['HS', 'LS'])
-   
-    plt.tight_layout()
-    
-    plt.savefig('{}/exp1_group_{}.pdf'.format(output_folder, p[1]))
-    plt.savefig('{}/exp1_group_{}.png'.format(output_folder, p[1]))
+    plt.savefig('{}/exp1_group_n1Eff_{}.pdf'.format(output_folder, p[1]))
+    plt.savefig('{}/exp1_group_n1Eff_{}.png'.format(output_folder, p[1]))
