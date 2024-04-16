@@ -25,7 +25,7 @@ plt.rcParams.update(rcConfigDict(filepath = "./rcparams_config.json"))
 cm = 1/2.54  # centimeters in inches
 single_col = 9*cm
 # oneDot5_col = 12.7*cm
-two_col = 19*cm
+two_col = 17*cm
 
 main_dir = "../data"
 os.chdir(main_dir)
@@ -126,18 +126,14 @@ allSubsData.reset_index(inplace=True)
 lmm_dir = "{}/LMM".format(output_folder)
 lme_raneff     = pd.read_csv('{}/exp2_condAccel_lmm_randomEffects.csv'.format(lmm_dir))
 lme_fixeffAnti = pd.read_csv('{}/exp2_condAccel_lmm_fixedeffectsAnti.csv'.format(lmm_dir))
-lme_fixeffVGP  = pd.read_csv('{}/exp2_condAccel_lmm_fixedeffectsVGP.csv'.format(lmm_dir))
 
 lme_fixeffAnti.at[0,'Unnamed: 0'] = 'Intercept'
-lme_fixeffVGP.at[0,'Unnamed: 0']  = 'Intercept'
 lme_fixeffAnti.set_index('Unnamed: 0', inplace=True)
-lme_fixeffVGP.set_index('Unnamed: 0', inplace=True)
 
 lme_fixeffAnti.fillna(0, inplace=True)
-lme_fixeffVGP.fillna(0, inplace=True)
 lme_raneff.fillna(0, inplace=True)
 
-anticipParams = [['aSPon','Anticipation Onset', [-200,0], ' aSPon (ms)'],
+anticipParams = [
                  ['aSPv', 'Anticipatory Eye Velocity', [-2.5,12], ' aSPv (°/s)'],
                 ]
 anticipData = allSubsData.groupby(['exp','sub','prob']).mean()
@@ -159,11 +155,12 @@ for p in anticipParams:
     axis      = lme_fixeffAnti.loc['axisvert.',p[0]]
     exp       = lme_fixeffAnti.loc['expconstantTime',p[0]]
     
-    prob_axis = lme_fixeffAnti.loc['prob:axisvert.',p[0]]
-    prob_exp  = lme_fixeffAnti.loc['prob:expconstantTime',p[0]]
-    axis_exp  = lme_fixeffAnti.loc['expconstantTime:axisvert.',p[0]]
+    # prob_axis = lme_fixeffAnti.loc['prob:axisvert.',p[0]]
+    # prob_exp  = lme_fixeffAnti.loc['prob:expconstantTime',p[0]]
+    # axis_exp  = lme_fixeffAnti.loc['expconstantTime:axisvert.',p[0]]
+    axis_exp  = lme_fixeffAnti.loc['axisvert.:expconstantTime',p[0]]
 
-    prob_ax_exp = lme_fixeffAnti.loc['prob:expconstantTime:axisvert.',p[0]]
+    # prob_ax_exp = lme_fixeffAnti.loc['prob:expconstantTime:axisvert.',p[0]]
 
     
     f,ax1 = plt.subplots(figsize=(two_col, 7*cm))# width, height
@@ -180,7 +177,8 @@ for p in anticipParams:
         s_axis      = list(raneff['axis'])[0]
         
         regX = cond_num*(prob + s_prob) + (intercept + s_intercept)
-        regY = cond_num*(prob_axis + prob + s_prob) + (axis + s_axis) + (intercept + s_intercept)
+        # regY = cond_num*(prob_axis + prob + s_prob) + (axis + s_axis) + (intercept + s_intercept)
+        regY = cond_num*(prob + s_prob) + (axis + s_axis) + (intercept + s_intercept)
         ax1.plot(cond_num+.03, regX, color=colorHS, alpha=0.5)
         ax1.plot(cond_num-.03, regY, color=colorLS, alpha=0.5)
     
@@ -226,10 +224,12 @@ for p in anticipParams:
         s_intercept = list(raneff['Intercept'])[0]
         s_prob      = list(raneff['prob'])[0]
         s_axis      = list(raneff['axis'])[0]
-        s_exp       = list(raneff['experiment'])[0]
+        # s_exp       = list(raneff['experiment'])[0]
 
-        regX = cond_num*(prob + s_prob) + (exp + s_exp) + (intercept + s_intercept)
-        regY = cond_num*(prob_ax_exp + prob_axis + prob + s_prob) + (axis_exp + axis + s_axis) + (exp + s_exp) + (intercept + s_intercept)
+        # regX = cond_num*(prob + s_prob) + (exp + s_exp) + (intercept + s_intercept)
+        regX = cond_num*(prob + s_prob) + exp + (intercept + s_intercept)
+        # regY = cond_num*(prob_ax_exp + prob_axis + prob + s_prob) + (axis_exp + axis + s_axis) + (exp + s_exp) + (intercept + s_intercept)
+        regY = cond_num*(prob + s_prob) + (axis_exp + axis + s_axis) + exp + (intercept + s_intercept)
         ax1.plot(cond_num+.03, regX, color=colorHS, alpha=0.5)
         ax1.plot(cond_num-.03, regY, color=colorLS, alpha=0.5)
         

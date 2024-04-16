@@ -25,7 +25,7 @@ plt.rcParams.update(rcConfigDict(filepath = "./rcparams_config.json"))
 cm = 1/2.54  # centimeters in inches
 single_col = 9*cm
 # oneDot5_col = 12.7*cm
-two_col = 19*cm
+two_col = 17*cm
 
 main_dir = "../data/"
 os.chdir(main_dir)
@@ -141,15 +141,11 @@ allSubsData.reset_index(inplace=True)
 # read LME results from csv generated on R
 lme_raneff     = pd.read_csv('{}/exp2_cond100Pred_lmm_randomEffects.csv'.format(lmm_dir_exp))
 lme_fixeffAnti = pd.read_csv('{}/exp2_cond100Pred_lmm_fixedeffectsAnti.csv'.format(lmm_dir_exp))
-lme_fixeffVGP  = pd.read_csv('{}/exp2_cond100Pred_lmm_fixedeffectsVGP.csv'.format(lmm_dir_exp))
 
 lme_fixeffAnti.at[0,'Unnamed: 0'] = 'Intercept'
-lme_fixeffVGP.at[0,'Unnamed: 0']  = 'Intercept'
 lme_fixeffAnti.set_index('Unnamed: 0', inplace=True)
-lme_fixeffVGP.set_index('Unnamed: 0', inplace=True)
 
 lme_fixeffAnti.fillna(0, inplace=True)
-lme_fixeffVGP.fillna(0, inplace=True)
 lme_raneff.fillna(0, inplace=True)
 
 
@@ -157,13 +153,12 @@ v0_val = np.array([7.78, 15.56, 23.33])
 ac_val = np.array([15.56, 0, -15.56])
 ac_plot = [v0_val[0]+1.5, v0_val[-1]-1.5]
 
-anticipParams = [['aSPon','Anticipation Onset', [-150,0], ' aSPon (ms)'],
+anticipParams = [
                  ['aSPv', 'Anticipatory Eye Velocity', [-2.5,10], ' aSPv (°/s)'],
                 ]
 anticipData = allSubsData.groupby(['exp', 'sub','v0','ac']).mean()
 anticipData.reset_index(inplace=True)
 print(lme_fixeffAnti)
-print(lme_fixeffVGP)
 print(lme_raneff)
 
 idxConst = [True if x==0.0 else False for x in anticipData['ac']]
@@ -196,11 +191,9 @@ for p in anticipParams:
         raneff      = lme_raneff.loc[(lme_raneff['sub']==int(sub[-2:]))&(lme_raneff['var']==p[0])]
         s_intercept = list(raneff['Intercept'])[0]
         s_v0        = list(raneff['v0'])[0]
-        s_ac        = list(raneff['accel'])[0]
         
         reg_Const = v0_val*(v0 + s_v0) + (intercept + s_intercept)
-        reg_Accel = v0_val*(v0 + s_v0) + ac_val*(s_ac + ac) + v0_val*ac_val*(v0_ac) + (intercept + s_intercept)
-        ax1.plot(v0_val, reg_Const, color=colorLS, alpha=0.5)
+        ax1.plot(v0_val, reg_Const, color='grey', alpha=0.5)
     
     plotBoxDispersion(data=anticipData[idxConst], 
                         by=['v0'], 
@@ -245,9 +238,8 @@ for p in anticipParams:
         s_v0        = list(raneff['v0'])[0]
         s_ac        = list(raneff['accel'])[0]
         
-        reg_Const = v0_val*(v0 + s_v0) + (intercept + s_intercept)
         reg_Accel = v0_val*(v0 + s_v0) + ac_val*(s_ac + ac) + v0_val*ac_val*(v0_ac) + (intercept + s_intercept)
-        ax1.plot(v0_val, reg_Accel, color=colorHS, alpha=0.5)
+        ax1.plot([v0_val[0],v0_val[-1]], [reg_Accel[0], reg_Accel[-1]], color='grey', alpha=0.5)
     
     plotBoxDispersion(data=anticipData[idxConst], 
                         by=['v0'], 
@@ -317,13 +309,13 @@ pairs = [
 pvalues_antivel = [
     .00001, # 1-2
     .00001, # 1-3
-    .0822, # 2-3
-    .3791, # a-1
-    .0196, # a-2
+    .0823, # 2-3
+    .3804, # a-1
+    .0195, # a-2
     .00001, # a-3 
     .00001, # d-1
-    .1634, # d-2
-    .1753, # d-3
+    .1644, # d-2
+    .1750, # d-3
     .0005, # a-d
 ]
 
@@ -363,7 +355,7 @@ for p in anticipParams:
                     scatterSize=30,
                     cmapAlpha=1,
                     jitter=0.1,
-                    boxWidth = 0.4,
+                    boxWidth = 0.2,
                     showfliers=False,
                     showKde=False,
                     cmap=list(colors100.values())
@@ -405,7 +397,7 @@ for p in anticipParams:
                     scatterSize=30,
                     cmapAlpha=1,
                     jitter=0.1,
-                    boxWidth = 0.4,
+                    boxWidth = 0.2,
                     showfliers=False,
                     showKde=False,
                     cmap=list(colors100.values()))

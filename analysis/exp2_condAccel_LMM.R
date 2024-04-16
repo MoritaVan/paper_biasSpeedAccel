@@ -108,7 +108,7 @@ randomeffects <- data.frame(
              ranef(aSPv_lmm)
   )
 
-colnames(randomeffects) <- c('Intercept', 'prob', 'experiment', 'axis','trial_velocity')
+colnames(randomeffects) <- c('Intercept', 'prob', 'axis')
 v1 <- unique(df$sub)
 randomeffects$sub <- v1
 randomeffects$var <- rep("aSPv", length(v1))

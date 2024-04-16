@@ -72,14 +72,13 @@ randomeffects <- data.frame(
              ranef(aSPv_lmm)
   )
 
-colnames(randomeffects) <- c('Intercept', 'prob', 'trial_velocity')
+colnames(randomeffects) <- c('Intercept', 'prob')
 v1 <- unique(df$sub_txt)
 randomeffects$sub <- v1
 randomeffects$var <- rep("aSPv", length(v1))
 
-columns = c("aSPon","aSPv")
+columns = c("aSPv")
 fixedeffectsAnti <- data.frame(
-  c1 <- fixef(aSPon_lmm),
   c2 <- fixef(aSPv_lmm)
 )
 colnames(fixedeffectsAnti) <- columns
@@ -88,6 +87,7 @@ colnames(fixedeffectsAnti) <- columns
 write.csv(randomeffects, 'LMM/exp1_lmm_randomEffects.csv')
 write.csv(fixedeffectsAnti, 'LMM/exp1_lmm_fixedeffectsAnti.csv')
 
+rAV <-ranef(aSPv_lmm)
 colnames(rAV) <- c("Constant", "P(HS)")
 
 
@@ -125,9 +125,8 @@ summary(aSPv_lmm)
 
 
 randomeffects <- data.frame(
-  rbind.fill(ranef(aSPon_lmm),
              ranef(aSPv_lmm)
-  ))
+  )
 
 colnames(randomeffects) <- c('Intercept', 'prob', 'n1_tgVel')
 v1 <- unique(df$sub_txt)
