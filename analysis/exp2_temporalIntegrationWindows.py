@@ -258,59 +258,56 @@ dt_mean = dt_mean[dt_mean['condition'].isin([13,31])]
 dt_std  = dt_std[dt_std['condition'].isin([13,31])]
 
 fig = plt.figure(figsize=(two_col, 7*cm))
-ax = fig.add_gridspec(1, 9)
+ax = fig.add_gridspec(1, 10)
 ax1 = fig.add_subplot(ax[0, 0:4])
 ax1.set_title('Target speed vs aSPv')
-
-
-# ax = plt.subplot(1,2,1)
-# plt.title()
 sns.scatterplot(data=data2plot, x='meanPredTgVel',y='meanAntiVel',hue='condition', palette=colors100, s=50, ax=ax1)
+plt.plot(x,reg,c='royalblue')
 plt.errorbar(x=dt_mean['meanPredTgVel'],y=dt_mean['meanAntiVel'],
                         xerr=dt_std['meanPredTgVel'],yerr=dt_std['meanAntiVel'],
                         ecolor=reds2,elinewidth=3,fmt='none')
-plt.plot(x,reg,c='royalblue')
 plt.xlim([-25,70])
 plt.ylim([-1,10])
 plt.ylabel('Mean aSPv (°/s)')
 plt.xlabel('True or estimated Target Speed (°/s)')
 plt.legend([ '','v11', 'vacc', 'v22', 'vdec','v33'])
 
+
+ax2 = fig.add_subplot(ax[0, 4:7])
+dt = data2plot[data2plot['sub']=='sub-13'].copy()
+print(dt)
+coef = list(paramsFit.loc[paramsFit['sub']=='sub-13','coefficients'])[0]
+intercept = list(paramsFit.loc[paramsFit['sub']=='sub-13','intercept'])[0]
+x = np.arange(-15,60,1)
+reg = intercept + coef*x
+plt.vlines(x=dt.loc[dt.condition==13,'meanPredTgVel'], ymin=-30, ymax=dt.loc[dt.condition==13,'meanAntiVel'], linestyles='dashed', color=colors100[13])
+plt.hlines(y=dt.loc[dt.condition==13,'meanAntiVel'], xmin=-30, xmax=dt.loc[dt.condition==13,'meanPredTgVel'], linestyles='dashed', color=colors100[13])
+plt.vlines(x=dt.loc[dt.condition==31,'meanPredTgVel'], ymin=-30, ymax=dt.loc[dt.condition==31,'meanAntiVel'], linestyles='dashed', color=colors100[31])
+plt.hlines(y=dt.loc[dt.condition==31,'meanAntiVel'], xmin=-30, xmax=dt.loc[dt.condition==31,'meanPredTgVel'], linestyles='dashed', color=colors100[31])
+plt.plot(x,reg,c='royalblue')
+sns.scatterplot(data=dt, x='meanPredTgVel',y='meanAntiVel',hue='condition', palette=colors100, s=50, ax=ax2)
+plt.xlim([-25,70])
+plt.ylim([-1,8])
+plt.ylabel('Mean aSPv (°/s)')
+plt.xlabel('Target Speed (°/s)')
+ax2.get_legend().set_visible(False)
+
 dt = mean_tw_integration.copy()
 dt.reset_index(inplace=True)
 dt['cond'] = [13 if 'Va' in x.condition else 31 for idx,x in dt.iterrows()]
 jitter = 0.5 * np.random.randn(len(dt))
 dt['cond2'] = dt.cond + jitter
-
-ax2 = fig.add_subplot(ax[0, 4:6])
-# ax2.set_title('[0:, -1]')
-
-# ax=plt.subplot(1,6,4)
-# plt.title('Temporal Window of Integration')
-sns.lineplot(data=dt, 
-             x="cond", y="tau", hue="subject",markers=True, palette = 'icefire')
-sns.scatterplot(data=dt, 
-                x='cond2',y='tau',hue='subject', palette='icefire', s=50)
-ax2.set_xticks([13,31])
-ax2.set_xticklabels(['vacc', 'vdec'])
-plt.xlim([0,40])
-plt.ylim([-1,1.5])
-plt.ylabel('Mean TWI (s)')
-plt.xlabel('Condition')
-plt.legend([])
-
-ax3 = fig.add_subplot(ax[0, 6:9])
-ax3.set_title('Temporal Window of Integration')
-# ax=plt.subplot(1,6,[5,6])
-# plt.title('Temporal Window of Integration')
+ax3 = fig.add_subplot(ax[0, 7:10])
+ax3.set_title('TWI')
 sns.histplot(data=dt, x='tau', hue='cond',palette=colors100, kde=True)
 plt.xlabel('Mean TWI (s)')
 plt.ylabel('Frequency')
+plt.legend(['vacc', 'vdec'])
+
 plt.tight_layout()
 
-plt.savefig('{}/exp2_twi_dist.png'.format(output_folder))          
-# plt.savefig('{}/exp2_twi.png'.format(output_folder))          
-# plt.savefig('{}/exp2_twi.pdf'.format(output_folder))          
+plt.savefig('{}/exp2_twi_dist.pdf'.format(output_folder))         
+plt.savefig('{}/exp2_twi_dist.png'.format(output_folder))         
 
 print('Va, tau - ttest against 0: \n', pg.ttest(dt.loc[dt.condition.isin(['Va-100_V0-0']),'tau'], 0, alternative='greater').round(4))
 print('Vd, tau - ttest against 0: \n', pg.ttest(dt.loc[dt.condition.isin(['Vd-100_V0-0']),'tau'], 0, alternative='greater').round(4))
