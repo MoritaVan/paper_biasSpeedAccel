@@ -3,6 +3,7 @@ import sys
 import numpy as np
 import pandas as pd
 import pingouin as pg
+from scipy import stats
 
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import explained_variance_score, r2_score
@@ -292,15 +293,31 @@ plt.ylabel('Mean aSPv (°/s)')
 plt.xlabel('Target Speed (°/s)')
 ax2.get_legend().set_visible(False)
 
+
+def normal(mean, std, histmax=False, color="black"):
+    x = np.linspace(mean-4*std, mean+4*std, 200)
+    p = stats.norm.pdf(x, mean, std)
+    if histmax:
+        p = p*histmax/max(p)
+    z = plt.plot(x, p, c=color, linewidth=1)
+
 dt = mean_tw_integration.copy()
 dt.reset_index(inplace=True)
 dt['cond'] = [13 if 'Va' in x.condition else 31 for idx,x in dt.iterrows()]
 jitter = 0.5 * np.random.randn(len(dt))
 dt['cond2'] = dt.cond + jitter
 ax3 = fig.add_subplot(ax[0, 7:10])
-ax3.set_title('TWI')
-sns.histplot(data=dt, x='tau', hue='cond',palette=colors100, kde=True)
-plt.xlabel('Mean TWI (s)')
+ax3.set_title('TWI distribution')
+sns.histplot(data=dt, x='tau', hue='cond',palette=colors100, stat="density")
+
+mean=dt.groupby(['condition']).mean()['tau']
+std=dt.groupby(['condition']).std()['tau']
+print(mean.loc['Va-100_V0-0'])
+meanVa, stdVa = mean.loc['Va-100_V0-0'], std.loc['Va-100_V0-0']
+meanVd, stdVd = mean.loc['Vd-100_V0-0'], std.loc['Vd-100_V0-0']
+normal(meanVa, stdVa, color=colors100[13], histmax=ax3.get_ylim()[1])
+normal(meanVd, stdVd, color=colors100[31], histmax=ax3.get_ylim()[1])
+plt.xlabel('TWI - last time point')
 plt.ylabel('Frequency')
 plt.legend(['vacc', 'vdec'])
 
@@ -311,6 +328,9 @@ plt.savefig('{}/exp2_twi_dist.png'.format(output_folder))
 
 print('Va, tau - ttest against 0: \n', pg.ttest(dt.loc[dt.condition.isin(['Va-100_V0-0']),'tau'], 0, alternative='greater').round(4))
 print('Vd, tau - ttest against 0: \n', pg.ttest(dt.loc[dt.condition.isin(['Vd-100_V0-0']),'tau'], 0, alternative='greater').round(4))
+
+print("mean: ", mean)
+print("std: ", std)
 
 
 
