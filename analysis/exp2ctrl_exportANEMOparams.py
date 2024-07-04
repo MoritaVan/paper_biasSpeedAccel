@@ -14,29 +14,39 @@ import os
 import numpy as np
 import pandas as pd
 
-main_dir = "../data/biasAccelerationControl"
-os.chdir(main_dir)
+ctrl_dir = "../data/biasAccelerationControl"
+ctrlV2_dir = "../data/biasAccelerationControlV2"
 
-output_folder = '../outputs/exp2ctrl'
+output_folder = '../data/outputs/exp2ctrl'
 
-subjects   = ['sub-01', 'sub-02', 'sub-03', 'sub-04', 'sub-05']
+subjectsCtrl   = ['sub-01', 'sub-02', 'sub-03', 'sub-04', 'sub-05']
 
-conditions =   [
-                'Va-100_V0-0', 
-                'Vd-100_V0-0',
-                'V1-100_V0-0', 
-                'V2-100_V0-0',
-                'V3-100_V0-0',
-                'Va-75_Vd-25',
-                'Vd-75_Va-25'
-                ]
+subjectsCtrlV2 = {
+    'sub-01': 'sub-02', # name in controlV2 : new name in control
+    'sub-02': 'sub-01', 
+    # 'sub-03': 'sub-06', 
+    # 'sub-04': 'sub-07', 
+    # 'sub-05': 'sub-08'
+}
 
-cond100 =   {
-                'V1-100_V0-0': 'V1', 
-                'V2-100_V0-0': 'V2',
-                'V3-100_V0-0': 'V3',
-                'Va-100_V0-0': 'Va', 
-                'Vd-100_V0-0': 'Vd',
+cond100Ctrl =   {
+                'V1-100_V0-0': 'V1c', 
+                'V2-100_V0-0': 'V2c',
+                'V3-100_V0-0': 'V3c',
+                'Va-100_V0-0': 'V1a', 
+                'Vd-100_V0-0': 'V3d',
+}
+
+cond100CtrlV2 = {
+                'V1d-100_V0-0': 'V1d', 
+                'V1a-100_V0-0': 'V1a', 
+                'V1c-100_V0-0': 'V1c', 
+                'V2d-100_V0-0': 'V2d',
+                'V2a-100_V0-0': 'V2a',
+                'V2c-100_V0-0': 'V2c',
+                'V3d-100_V0-0': 'V3d',
+                'V3a-100_V0-0': 'V3a',
+                'V3c-100_V0-0': 'V3c',
 }
 
 condAcc = {
@@ -48,12 +58,31 @@ condAcc = {
 
 allSubsData = pd.DataFrame([])
 
-for sub in subjects:
-    h5_file = '{s}/{s}_biasAccel_smoothPursuitData_nonlinear.h5'.format(s=sub)
+for sub in subjectsCtrl:
+    h5_file = '{dir}/{s}/{s}_biasAccel_smoothPursuitData_nonlinear.h5'.format(dir=ctrl_dir,s=sub)
     data_tmp =  pd.read_hdf(h5_file, 'data')
     
     data_tmp['sub'] = np.ones(len(data_tmp)) * int(sub[-2:])
     data_tmp['sub_txt'] = sub
+
+    data_tmp['cond_OldName'] = data_tmp['condition']
+    data_tmp['condition'] = [cond100Ctrl[c] if c in cond100Ctrl.keys() else c for c in data_tmp['condition']]
+
+    data_tmp.loc[data_tmp['SPlat_x'] == data_tmp['aSPon_x']+1, 'aSPon_x'] = np.nan
+    data_tmp.loc[data_tmp['SPlat_y'] == data_tmp['aSPon_y']+1, 'aSPon_y'] = np.nan
+
+    allSubsData = pd.concat([allSubsData,data_tmp],ignore_index=True)
+
+for sub in subjectsCtrlV2:
+    h5_file = '{dir}/{s}/{s}_biasAccel_smoothPursuitData_nonlinear.h5'.format(dir=ctrlV2_dir,s=sub)
+    data_tmp =  pd.read_hdf(h5_file, 'data')
+    
+    new_subName = subjectsCtrlV2[sub]
+    data_tmp['sub'] = np.ones(len(data_tmp)) * int(new_subName[-2:])
+    data_tmp['sub_txt'] = new_subName
+
+    data_tmp['cond_OldName'] = data_tmp['condition']
+    data_tmp['condition'] = [cond100CtrlV2[c] for c in data_tmp['condition']]
 
     data_tmp.loc[data_tmp['SPlat_x'] == data_tmp['aSPon_x']+1, 'aSPon_x'] = np.nan
     data_tmp.loc[data_tmp['SPlat_y'] == data_tmp['aSPon_y']+1, 'aSPon_y'] = np.nan
@@ -64,8 +93,8 @@ for sub in subjects:
 # allData variable created above
 # exporting to use on jamovi/R
 
-allSubs_cond100 = allSubsData[allSubsData['condition'].isin(cond100)]
-allSubs_condAcc = allSubsData[allSubsData['condition'].isin(condAcc)]
+allSubs_cond100 = allSubsData[allSubsData['condition'].isin(cond100CtrlV2.values())]
+allSubs_condAcc = allSubsData[allSubsData['condition'].isin(condAcc.keys())]
 
 allSubsData.to_csv('{}/exp2ctrl_params.csv'.format(output_folder))
 allSubs_cond100.to_csv('{}/exp2ctrl_params_cond100Pred.csv'.format(output_folder))

@@ -50,6 +50,14 @@ data <- read.csv('exp2_params_cond100Pred.csv', sep=',')
 data <- data[data$trial>10,]
 
 data$exp <- replicate(nrow(data), 'constantDistance')
+cond <- data$condition
+cond[cond=='V1-100_V0-0'] <- 'V1c'
+cond[cond=='V2-100_V0-0'] <- 'V2c'
+cond[cond=='V3-100_V0-0'] <- 'V3c'
+cond[cond=='Va-100_V0-0'] <- 'V1a'
+cond[cond=='Vd-100_V0-0'] <- 'V3d'
+data$condition <- cond
+
 
 maxSub <- max(data$sub)
 
@@ -77,42 +85,50 @@ colnames(yAxisCtrl) <- new_colnames
 
 dataAll <- rbind(xAxis,yAxis,xAxisCtrl,yAxisCtrl)
 
-cond <- dataAll$condition
-cond[cond=='V1-100_V0-0'] <- 'v11'
-cond[cond=='V2-100_V0-0'] <- 'v22'
-cond[cond=='V3-100_V0-0'] <- 'v33'
-cond[cond=='Va-100_V0-0'] <- 'vacc'
-cond[cond=='Vd-100_V0-0'] <- 'vdec'
-dataAll$condition <- cond
 
-v0 <- cond
-v0[v0=="v11"] <- 11/sqrt(2)
-v0[v0=="v22"] <- 22/sqrt(2)
-v0[v0=="v33"] <- 33/sqrt(2)
-v0[v0=="vacc"] <- 11/sqrt(2)
-v0[v0=="vdec"] <- 33/sqrt(2)
+
+v0 <- dataAll$condition
+v0[v0=="V1c"] <- 11/sqrt(2)
+v0[v0=="V2c"] <- 22/sqrt(2)
+v0[v0=="V3c"] <- 33/sqrt(2)
+v0[v0=="V1a"] <- 11/sqrt(2)
+v0[v0=="V2a"] <- 22/sqrt(2)
+v0[v0=="V3a"] <- 33/sqrt(2)
+v0[v0=="V1d"] <- 11/sqrt(2)
+v0[v0=="V2d"] <- 22/sqrt(2)
+v0[v0=="V3d"] <- 33/sqrt(2)
 v0 <- as.numeric(v0)
 dataAll$v0 <- v0
 
-ac <- cond
-ac[ac=="v11"] <- 0/sqrt(2)
-ac[ac=="v22"] <- 0/sqrt(2)
-ac[ac=="v33"] <- 0/sqrt(2)
-ac[ac=="vacc"] <- 22/sqrt(2)
-ac[ac=="vdec"] <- -22/sqrt(2)
+ac <- dataAll$condition
+ac[ac=="V1c"] <- 0/sqrt(2)
+ac[ac=="V2c"] <- 0/sqrt(2)
+ac[ac=="V3c"] <- 0/sqrt(2)
+ac[ac=="V1a"] <- 22/sqrt(2)
+ac[ac=="V2a"] <- 22/sqrt(2)
+ac[ac=="V3a"] <- 22/sqrt(2)
+ac[ac=="V1d"] <- -22/sqrt(2)
+ac[ac=="V2d"] <- -22/sqrt(2)
+ac[ac=="V3d"] <- -22/sqrt(2)
 ac <- as.numeric(ac)
 dataAll$accel <- ac
 
 
 ###############################################
-form <- aSPv ~ 1 + condition*axis*exp + (1 + condition+axis+exp|sub)
-# model <- buildmer(form,buildmerControl=buildmerControl(direction=c('order','backward'),
-#                                                        args=list(control=lmerControl(optimizer='bobyqa'))), data=dataAll)
-# formula(model)
+form <- aSPv ~ 1 + condition*exp + (1 + condition+exp|sub)
+model <- buildmer(form, data=dataAll,
+                  buildmerControl=buildmerControl(direction=c('order','backward'),
+                                                        args=list(control=lmerControl(optimizer='bobyqa'))))
+formula(model)
 
-aSPv_lmm <- lme(aSPv ~ 1 + condition + axis + exp + axis:exp + condition:axis,
-                random = list(sub = ~ 1 + condition + axis),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
+# aSPv_lmm <- lme(aSPv ~ 1 + condition + axis + exp + axis:exp + condition:axis,
+#                 random = list(sub = ~ 1 + condition + axis),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
+#                 data=dataAll) # -> before addind the missing conditions/new data 
+
+aSPv_lmm <- lme(aSPv ~ 1 + condition,
+                random = list(sub = ~ 1),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
                 data=dataAll)
+
 summary(aSPv_lmm)
 # contrast(emmeans(aSPv_lmm, specs="condition"), "pairwise", adjust='bonferroni')
 contrast(emmeans(aSPv_lmm, specs="condition"), "pairwise", adjust='BH') # Benjamini & Hochberg, FDR
@@ -171,11 +187,11 @@ bf_v2vd = ttestBF(x = meanAntiVel_v2,meanAntiVel_vd, paired=TRUE)
 bf_v2vd
 
 # testing effect of acceleration vs initial speed only
-# form <- aSPv ~ 1 + v0*accel*exp + (1 + v0 + accel + exp|sub)
-# model <- buildmer(form,buildmerControl=buildmerControl(direction=c('order','backward'),
-#                                                        args=list(control=lmerControl(optimizer='bobyqa'))), data=dataAll)
-# formula(model)
-aSPv_lmm <- lme(aSPv ~ 1 + v0*accel,
+form <- aSPv ~ 1 + v0*accel*exp + (1 + v0 + accel + exp|sub)
+model <- buildmer(form,buildmerControl=buildmerControl(direction=c('order','backward'),
+                                                       args=list(control=lmerControl(optimizer='bobyqa'))), data=dataAll)
+formula(model)
+aSPv_lmm <- lme(aSPv ~ 1 + v0 + accel + exp + v0:accel,
                 random = list(sub = ~ 1 + v0 + accel),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
                 data=dataAll)
 summary(aSPv_lmm)
@@ -192,10 +208,15 @@ aSPv_lmm_accel <- lme(aSPv ~ 1 + accel,
                 data=dataAll)
 summary(aSPv_lmm_accel)
 
+aSPv_lmm_full <- lme(aSPv ~ 1 + v0*accel,
+                      random = list(sub = ~ 1 + v0 + accel),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
+                      data=dataAll)
+summary(aSPv_lmm_full)
+
 
 bicV0   <- BIC(aSPv_lmm_v0)
 bicAc   <- BIC(aSPv_lmm_accel)
-bicFull <- BIC(aSPv_lmm)
+bicFull <- BIC(aSPv_lmm_full)
 
 bic_to_bf(c(bicV0, bicAc, bicFull), denominator = bicV0)
 bic_to_bf(c(bicV0, bicAc, bicFull), denominator = bicAc)
