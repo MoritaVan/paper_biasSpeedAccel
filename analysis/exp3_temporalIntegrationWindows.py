@@ -1,5 +1,4 @@
 #%%
-import os
 import sys
 import numpy as np
 import pandas as pd
@@ -7,7 +6,6 @@ import pingouin as pg
 from scipy import stats
 
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import explained_variance_score, r2_score
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -27,40 +25,28 @@ single_col = 8.9*cm
 oneDot5_col = 12.7*cm
 two_col = 18.2*cm
 
+#colorblind friendly
+colorAC = np.array([0,158,115,255])/255
+colorCT = np.array([114,93,239,255])/255
+colorDC = np.array([221,33,125,255])/255
+
+
 main_dir = "../data/"
 # os.chdir(main_dir)
 
-output_folder = "{}/outputs/exp2".format(main_dir)
+output_folder = "{}/outputs/exp3".format(main_dir)
 
-data_dir_exp    = "{}/biasAcceleration".format(main_dir)
-data_dir_ctrl   = "{}/biasAccelerationControl".format(main_dir)
-data_dir_ctrlV2 = "{}/biasAccelerationControlV2".format(main_dir)
+data_dir_exp3   = "{}/biasAccelerationControl_100Pred".format(main_dir)
+data_dir_exp2B = "{}/biasAccelerationControl_ConstDuration".format(main_dir)
 
-
-subjects   = ['sub-01', 'sub-02', 'sub-03', 'sub-04', 'sub-05', 
-              'sub-06',
-                'sub-07', 'sub-08', 'sub-09', 
-              'sub-10', 'sub-11', 'sub-12', 'sub-13'] # 5, 8, 9 with inverted slope
-
-subjectsCtrl = [
-                'sub-01', 'sub-02', 'sub-03', 'sub-04', 'sub-05'
+subjectsExp2B = [
+                'sub-01', 'sub-02'
 ]
-subjectsCtrlV2 = ['sub-01', 'sub-02']#, 'sub-03', 'sub-04', 'sub-05']
+subjectsExp3 = ['sub-01', 'sub-02', 'sub-03', 'sub-04', 'sub-06', 'sub-07', 'sub-08']#, 'sub-05']
 
-newSubCtrl = { # subName in control : corresponding subName in experiment
-    'sub-01': 'sub-01', 
-    'sub-02': 'sub-13', 
-    'sub-03': 'sub-16', 
-    'sub-04': 'sub-17', 
-    'sub-05': 'sub-18'
-}
-
-newSubCtrlV2 = { # subName in controlV2 : corresponding subName in experiment
-    'sub-01': 'sub-13', 
+newSubExp2B = { # subName in Exp2B-fully predictable blocks : corresponding subName in experiment 3
+    'sub-01': 'sub-02', 
     'sub-02': 'sub-01', 
-    # 'sub-03': 'sub-19', 
-    # 'sub-04': 'sub-20', 
-    # 'sub-05': 'sub-21'
 }
 
 cond100 =   {
@@ -71,7 +57,7 @@ cond100 =   {
                 'Vd-100_V0-0': 'V3d',
 }
 
-cond100CtrlV2 = {
+cond100Exp3 = {
                 'V1d-100_V0-0': 'V1d', 
                 'V1a-100_V0-0': 'V1a', 
                 'V1c-100_V0-0': 'V1c', 
@@ -86,50 +72,38 @@ cond100CtrlV2 = {
 #%%
 
     
-# print('Plotting parameters')
+print('Reading data')
 paramsAll = pd.DataFrame()
-for sub in subjects:
-    h5_file = '{dir}/{sub}/{sub}_biasAccel_smoothPursuitData_nonlinear.h5'.format(dir=data_dir_exp, sub=sub)
+
+for idx,sub in enumerate(subjectsExp2B):
+    h5_file = '{dir}/{sub}/{sub}_biasAccel_smoothPursuitData_nonlinear.h5'.format(dir=data_dir_exp2B, sub=sub)
     params  =  pd.read_hdf(h5_file, 'data')
     params  = params[params['condition'].isin(cond100)]
     params['cond'] = [cond100[x] for x in params['condition']]
-    params['sub'] = np.ones(len(params)) * int(sub[-2:])
+    params['sub'] = np.ones(params.shape[0])*int(newSubExp2B[sub][-2:])
     paramsAll = pd.concat([paramsAll, params])
 
-for idx,sub in enumerate(subjectsCtrl):
-    h5_file = '{dir}/{sub}/{sub}_biasAccel_smoothPursuitData_nonlinear.h5'.format(dir=data_dir_ctrl, sub=sub)
+for idx,sub in enumerate(subjectsExp3):
+    h5_file = '{dir}/{sub}/{sub}_biasAccel_smoothPursuitData_nonlinear.h5'.format(dir=data_dir_exp3, sub=sub)
     params  =  pd.read_hdf(h5_file, 'data')
-    params  = params[params['condition'].isin(cond100)]
-    params['cond'] = [cond100[x] for x in params['condition']]
-    params['sub'] = np.ones(params.shape[0])*int(newSubCtrl[sub][-2:])
+    params  = params[params['condition'].isin(cond100Exp3)]
+    params['cond'] = [cond100Exp3[x] for x in params['condition']]
+    params['sub'] = np.ones(params.shape[0])*int(sub[-2:])
     paramsAll = pd.concat([paramsAll, params])
-
-for idx,sub in enumerate(subjectsCtrlV2):
-    h5_file = '{dir}/{sub}/{sub}_biasAccel_smoothPursuitData_nonlinear.h5'.format(dir=data_dir_ctrlV2, sub=sub)
-    params  =  pd.read_hdf(h5_file, 'data')
-    params  = params[params['condition'].isin(cond100CtrlV2)]
-    params['cond'] = [cond100CtrlV2[x] for x in params['condition']]
-    params['sub'] = np.ones(params.shape[0])*int(newSubCtrl[sub][-2:])
-    paramsAll = pd.concat([paramsAll, params])
-
-
-paramsAll.loc[paramsAll['SPlat_x'] == paramsAll['aSPon_x']+1, 'aSPon_x'] = np.nan
-paramsAll.loc[paramsAll['SPlat_y'] == paramsAll['aSPon_y']+1, 'aSPon_y'] = np.nan
 
 paramsAll.reset_index(inplace=True)
 
 #%%
 # model: perceived velocity for accelerating conditions based on constant conditions
 
+print('Fitting model')
 keys2keep = [
     'sub', 'cond', 'trial', 'aSPv_x', 'aSPv_y',
 ]
 
 dataFit    = pd.DataFrame()
 resultsFit = pd.DataFrame()
-# update subjects list (exp + control)
-subjects = list(set(subjects).union(newSubCtrl.values()).union(newSubCtrlV2.values()))
-subjects.sort()
+subjects = subjectsExp3
 
 for sub in subjects:
     print(sub)
@@ -177,59 +151,10 @@ for sub in subjects:
     dataFit = pd.concat([dataFit,data], ignore_index=True)
 
 #%%
+print('Calculating temporal window of integration')
 
-def closest(lst, K): 
-    import numpy as np
-
-    lst = np.asarray(lst) 
-    idx = (np.abs(lst - K)).argmin() 
-    return idx, lst[idx] 
-    
-timeWindows = np.arange(50,501,50)
-
-t  = np.linspace(0,0.7,700)
-v1a = 11/np.sqrt(2) + 22/np.sqrt(2)*t
-v1d = 11/np.sqrt(2) - 22/np.sqrt(2)*t
-v2a = 22/np.sqrt(2) + 22/np.sqrt(2)*t
-v2d = 22/np.sqrt(2) - 22/np.sqrt(2)*t
-v3a = 33/np.sqrt(2) + 22/np.sqrt(2)*t
-v3d = 33/np.sqrt(2) - 22/np.sqrt(2)*t
-
-velocities = {
-    'V1a': v1a,
-    'V2a': v2a,
-    'V3a': v3a,
-    'V1d': v1d,
-    'V2d': v2d,
-    'V3d': v3d,
-}
-
-keys = ['condition', 'time_window_size', 'speed']
-tw_data = pd.DataFrame([], columns=keys)
-for cond in cond100CtrlV2.values(): #['Va-100_V0-0','Vd-100_V0-0']:
-    if 'c' not in cond:
-        timeArray = t
-        vel = velocities[cond]
-        for t in timeWindows:
-            idx = timeArray<t/1000
-            speed = np.mean(vel[idx])
-
-            tw_data = tw_data.append(pd.DataFrame([[cond, t, speed]], columns=keys))
-        
-mapCond = {
-    'V1d': 9, 
-    'V1a': 13, 
-    'V1c': 11, 
-    'V2d': 20,
-    'V2a': 24,
-    'V2c': 22,
-    'V3d': 31,
-    'V3a': 35,
-    'V3c': 33,
-}
-
-keysTWI  = ['subject', 'condition', 'integration_tw', 'tau', 'pred_targetSpeed']
-keysMTWI = ['subject', 'condition', 'integration_tw', 'tau', 'mean_pred_targetSpeed']
+keysTWI  = ['subject', 'condition', 'trial', 'tau', 'pred_targetSpeed']
+keysMTWI = ['subject', 'condition', 'tau', 'mean_pred_targetSpeed']
 tw_integration = pd.DataFrame([], columns=keysTWI)
 mean_tw_integration = pd.DataFrame([], columns=keysMTWI)
 for sub in subjects:
@@ -237,7 +162,7 @@ for sub in subjects:
 
     paramsSub = resultsFit[resultsFit['sub']==sub]
 
-    for cond in cond100CtrlV2.values(): #['Va-100_V0-0','Vd-100_V0-0']:
+    for cond in cond100Exp3.values(): 
         if 'c' not in cond:
             dataFitCond = dataFit[(dataFit['sub']==int(sub[-2:]))&(dataFit['cond']==cond)]
             
@@ -247,23 +172,16 @@ for sub in subjects:
 
             accel = 22 if 'a' in cond else -22
 
-            twCond = tw_data[tw_data['condition']==cond].copy()
-            twCond.reset_index(inplace=True)
             for trial,row in dataFitCond.iterrows():
-                idx, closestSpeed = closest(twCond['speed'],row['targetSpeed_pred'])
-                closestTw = twCond.at[idx,'time_window_size']
-                tau = (row['targetSpeed_pred']-v0)/accel
-                    
-                tw_integration = tw_integration.append(pd.DataFrame([[sub,cond,closestTw, tau, row['targetSpeed_pred']]], columns=keysTWI))
+                tau = ((row['targetSpeed_pred']-v0)/accel)/2
+                tw_integration = pd.concat([tw_integration,pd.DataFrame([[sub,cond,trial, tau, row['targetSpeed_pred']]], columns=keysTWI)], ignore_index=True)
 
             # twi based on the mean predicted target speed
             meanTgSpeed_test = np.mean(np.array(dataFitCond['targetSpeed_pred']))
-            idx, closestSpeed = closest(twCond['speed'],meanTgSpeed_test)
-            closestTw = twCond.at[idx,'time_window_size']
             tau = ((meanTgSpeed_test-v0)/accel)/2
-            mean_tw_integration = mean_tw_integration.append(pd.DataFrame([[sub,cond,closestTw, tau, meanTgSpeed_test]], columns=keysMTWI))
+            mean_tw_integration = pd.concat([mean_tw_integration,pd.DataFrame([[sub,cond,tau,meanTgSpeed_test]], columns=keysMTWI)], ignore_index=True)
 
-mean_tw_integration['integration_tw'] = mean_tw_integration['integration_tw'].astype(float)
+tw_integration.to_csv('{}/exp3_twi.csv'.format(output_folder))
 
 #%%
 data2plot = dataFit.groupby(['sub', 'cond', 'trials_type']).mean().reset_index()
@@ -271,49 +189,23 @@ data2plot.loc[data2plot['cond']=='V1c','targetSpeed_pred'] = 11
 data2plot.loc[data2plot['cond']=='V2c','targetSpeed_pred'] = 22
 data2plot.loc[data2plot['cond']=='V3c','targetSpeed_pred'] = 33
 
-# cmap_blues  = plt.get_cmap('Blues_r') 
-# cmap_reds   = plt.get_cmap('Reds_r') 
-# cmap_greens = plt.get_cmap('Greens_r') 
-
-# blues2  = cmap_blues(np.linspace(0.2, .6, 3))
-# reds2   = cmap_reds(np.linspace(0.2, .6, 3))
-# greens2 = cmap_greens(np.linspace(0.2, .6, 3))
-
-# colors100 = {
-#     'V1d': greens2[0],
-#     'V2d': greens2[1],
-#     'V3d': greens2[2],
-#     'V1c': blues2[0],
-#     'V2c': blues2[1],
-#     'V3c': blues2[2],
-#     'V1a': reds2[0],
-#     'V2a': reds2[1],
-#     'V3a': reds2[2],
-# }
-
-cmap = sns.color_palette("flare", as_cmap=True)
-colors = cmap(np.linspace(0, 1, 9))
 
 colors100 = {
-    'V1d': colors[0],
-    'V1c': colors[1],
-    'V1a': colors[2],
-    'V2d': colors[3],
-    'V2c': colors[4],
-    'V2a': colors[5],
-    'V3d': colors[6],
-    'V3c': colors[7],
-    'V3a': colors[8],
+    'V1d': colorDC,
+    'V1c': colorCT,
+    'V1a': colorAC,
+    'V2d': colorDC,
+    'V2c': colorCT,
+    'V2a': colorAC,
+    'V3d': colorDC,
+    'V3c': colorCT,
+    'V3a': colorAC,
 }
 
-pf = resultsFit[~resultsFit['sub'].isin(['sub-08'])]
-coef = pf.coefficients.mean()[0]
-intercept = pf.intercept.mean()
+coef = resultsFit.coefficients.mean()[0]
+intercept = resultsFit.intercept.mean()
 x = np.arange(-15,60,1)
 reg = intercept + coef*x
-
-data2plot = data2plot[data2plot['sub']!=8]
-mean_tw_integration = mean_tw_integration[~mean_tw_integration['subject'].isin(['sub-08'])]
 
 dt_mean = data2plot.groupby(['cond']).mean().reset_index()
 dt_std  = data2plot.groupby(['cond']).std().reset_index()
@@ -328,21 +220,21 @@ idxAccel = [False if 'c' in cond else True for cond in data2plot['cond']]
 idxConstMean = [idx for idx,row in dt_mean.iterrows() if 'c' in row['cond']]
 idxAccelMean = [idx for idx,row in dt_mean.iterrows() if 'c' not in row['cond']]
 
-fig = plt.figure(figsize=(two_col, 7*cm))
+fig = plt.figure(figsize=(two_col, 10*cm))
 # ax = fig.add_gridspec(5, 10)
 # ax1 = fig.add_subplot(ax[0:5, 0:5])
-ax = fig.add_gridspec(1, 3)
+ax = fig.add_gridspec(2, 8)
 
 # ax2 = fig.add_subplot(ax[0:2, 6:10])
-ax2 = fig.add_subplot(ax[0, 0])
+ax2 = fig.add_subplot(ax[0, 0:2])
 ax2.set_title('Individual example')
-dt = data2plot[data2plot['sub']==13].copy()
+dt = data2plot[data2plot['sub']==2].copy()
 dt.loc[dt['cond']=='V1c','targetSpeed_pred'] = 11
 dt.loc[dt['cond']=='V2c','targetSpeed_pred'] = 22
 dt.loc[dt['cond']=='V3c','targetSpeed_pred'] = 33
 
-coef = list(resultsFit.loc[resultsFit['sub']=='sub-13','coefficients'])[0]
-intercept = list(resultsFit.loc[resultsFit['sub']=='sub-13','intercept'])[0]
+coef = list(resultsFit.loc[resultsFit['sub']=='sub-02','coefficients'])[0]
+intercept = list(resultsFit.loc[resultsFit['sub']=='sub-02','intercept'])[0]
 x = np.arange(-15,60,1)
 reg = intercept + coef*x
 plt.vlines(x=dt.loc[dt.cond=='V1a','targetSpeed_pred'], ymin=-30, ymax=dt.loc[dt.cond=='V1a','eyeSpeed'], linestyles='dashed', color=colors100['V1a'])
@@ -367,52 +259,69 @@ def normal(mean, std, histmax=False, color="black", label=''):
 
 dt = mean_tw_integration.copy()
 dt.reset_index(inplace=True)
-idxAccel = [idx for idx,row in dt.iterrows() if 'a' in row['condition']]
-idxDecel = [idx for idx,row in dt.iterrows() if 'd' in row['condition']]
-# ax3 = fig.add_subplot(ax[3:5, 6:10])
-ax3 = fig.add_subplot(ax[0, 1])
-ax3.set_title('TWI distribution')
-sns.histplot(data=dt.loc[idxAccel,:], x='tau', hue='condition',palette=colors100, stat="density")
+idxV1 = [idx for idx,row in dt.iterrows() if '1' in row['condition']]
+idxV2 = [idx for idx,row in dt.iterrows() if '2' in row['condition']]
+idxV3 = [idx for idx,row in dt.iterrows() if '3' in row['condition']]
 
 mean=dt.groupby(['condition']).mean()['tau']
 std=dt.groupby(['condition']).std()['tau']
+
+ax3 = fig.add_subplot(ax[0,2:5])
+ax3.set_title('TWI distribution')
+sns.histplot(data=dt.loc[idxV1,:], x='tau', hue='condition',palette=colors100, stat="probability")
 for cond in mean.index:
-    if 'a' in cond:
+    if '1' in cond:
         meanV, stdV = mean.loc[cond], std.loc[cond]
         normal(meanV, stdV, color=colors100[cond], histmax=ax3.get_ylim()[1], label=cond)
 plt.xlabel('TWI - last time point')
 plt.ylabel('Frequency')
-plt.xlim([-2,2])
+plt.xlim([-1.5,1.5])
+plt.ylim([0,.35])
 plt.legend()
 
-ax3 = fig.add_subplot(ax[0, 2])
+ax3 = fig.add_subplot(ax[0,5:8])
 ax3.set_title('TWI distribution')
-sns.histplot(data=dt.loc[idxDecel,:], x='tau', hue='condition',palette=colors100, stat="density")
-
-mean=dt.groupby(['condition']).mean()['tau']
-std=dt.groupby(['condition']).std()['tau']
+sns.histplot(data=dt.loc[idxV2,:], x='tau', hue='condition',palette=colors100, stat="probability")
 for cond in mean.index:
-    if 'd' in cond:
+    if '2' in cond:
         meanV, stdV = mean.loc[cond], std.loc[cond]
         normal(meanV, stdV, color=colors100[cond], histmax=ax3.get_ylim()[1], label=cond)
 plt.xlabel('TWI - last time point')
 plt.ylabel('Frequency')
-plt.xlim([-2,2])
+plt.xlim([-1.5,1.5])
+plt.ylim([0,.35])
 plt.legend()
-# plt.legend(['vacc', 'vdec'])
+
+ax3 = fig.add_subplot(ax[1, 5:8])
+ax3.set_title('TWI distribution')
+sns.histplot(data=dt.loc[idxV3,:], x='tau', hue='condition',palette=colors100, stat="probability")
+for cond in mean.index:
+    if '3' in cond:
+        meanV, stdV = mean.loc[cond], std.loc[cond]
+        normal(meanV, stdV, color=colors100[cond], histmax=ax3.get_ylim()[1], label=cond)
+plt.xlabel('TWI - last time point')
+plt.ylabel('Frequency')
+plt.xlim([-1.5,1.5])
+plt.ylim([0,.35])
+plt.legend()
 
 plt.tight_layout()
 
-plt.savefig('{}/exp2_twi_dist.pdf'.format(output_folder))         
-plt.savefig('{}/exp2_twi_dist.png'.format(output_folder))         
+plt.savefig('{}/exp3_twi_dist.pdf'.format(output_folder))         
+plt.savefig('{}/exp3_twi_dist.png'.format(output_folder))         
 
-for cond in cond100CtrlV2.values():
-    if 'c' not in cond:
-        print(f'{cond}, tau - ttest against 0:')
-        print(pg.ttest(dt.loc[dt.condition.isin([cond]),'tau'], 0, alternative='greater').round(4), '\n')
-
-print("mean: ", mean)
-print("std: ", std)
+#%%
+dtExp3 = dt.copy(deep=True).reset_index()
 
 
+print('Stats')
 
+print('\t\tANOVA')
+print(pg.rm_anova(dv='tau', within='condition', data=dtExp3,
+               subject='subject', detailed=True), '\n\n')
+
+
+meanTWI = dtExp3['tau'].mean()
+stdTWI = dtExp3['tau'].std()
+
+print(f'mean TWI: {meanTWI}, std: {stdTWI}')

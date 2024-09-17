@@ -10,7 +10,7 @@ library(buildmer)
 library(tidyr)
 
 # setwd("../exp1/LMM")
-setwd("~/Experiments/data/outputs/exp1")
+setwd("~/Experiments/data/outputs/exp1A")
 
 formatRanef <- function(r1) { # receives the ranef structure
   
@@ -36,7 +36,7 @@ formatRanef <- function(r1) { # receives the ranef structure
 }
 
 
-data <- read.csv('exp1_params.csv', sep=',')
+data <- read.csv('exp1A_params.csv', sep=',')
 data <- data[data$trial>10,]
 data$prob <- data$cond_num
 
@@ -92,8 +92,8 @@ colnames(rAV) <- c("Constant", "P(HS)")
 
 
 starAnti.out <- stargazer(aSPv_lmm,
-                          out='LMM/exp1_lmmResults_antiParams.html', 
-                          title='Exp1: Anticipatory Parameters',
+                          out='LMM/exp1A_lmmResults_antiParams.html', 
+                          title='Exp1A: Anticipatory Parameters',
                           single.row=TRUE,
                           report = "vc*stp",
                           star.cutoffs = c(.01, .001, .0001),
@@ -109,7 +109,7 @@ starAnti.out <- stargazer(aSPv_lmm,
 
 
 #############
-
+## N-1 Effect
 aSPv_lmm <- lme(aSPv ~ 1 + n1_vel*prob,
                 random = list(sub = ~ 1 + prob + n1_vel),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
                 data=df)
@@ -140,16 +140,16 @@ fixedeffectsAnti <- data.frame(
 colnames(fixedeffectsAnti) <- columns
 
 
-write.csv(randomeffects, 'LMM/exp1_lmm_n1Eff_randomEffects.csv')
-write.csv(fixedeffectsAnti, 'LMM/exp1_lmm_n1Eff_fixedeffectsAnti.csv')
+write.csv(randomeffects, 'LMM/exp1A_lmm_n1Eff_randomEffects.csv')
+write.csv(fixedeffectsAnti, 'LMM/exp1A_lmm_n1Eff_fixedeffectsAnti.csv')
 
 rAV <- ranef(aSPv_lmm)
 colnames(rAV) <- c("Constant", "P(HS)", "N-1 vel[LS]")
 
 
 starAnti.out <- stargazer(aSPv_lmm,
-                          out='LMM/exp1_lmmResults_n1Eff_antiParams.html', 
-                          title='Exp 1: Anticipatory Parameters – Sequential Effects',
+                          out='LMM/exp1A_lmmResults_n1Eff_antiParams.html', 
+                          title='Exp 1A: Anticipatory Parameters – Sequential Effects',
                           single.row=TRUE,
                           report = "vc*stp",
                           star.cutoffs = c(.01, .001, .0001),

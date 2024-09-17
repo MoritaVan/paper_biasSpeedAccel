@@ -9,8 +9,7 @@ library(ggplot2)
 library(buildmer)
 library(tidyr)
 
-# setwd("../exp2/LMM")
-setwd("~/Experiments/data/outputs/exp2")
+setwd("~/Experiments/data/outputs/exp1B")
 
 
 formatRanef <- function(r1) { # receives the ranef structure
@@ -37,7 +36,7 @@ formatRanef <- function(r1) { # receives the ranef structure
 }
 
 
-data <- read.csv('exp2_params_condConst.csv', sep=',')
+data <- read.csv('exp1B_params.csv', sep=',')
 data <- data[data$trial>10,]
 
 prob <- data$condition
@@ -109,8 +108,8 @@ fixedeffectsAnti <- data.frame(
 colnames(fixedeffectsAnti) <- columns
 
 
-write.csv(randomeffects, 'LMM/exp2_condConst_lmm_randomEffects.csv')
-write.csv(fixedeffectsAnti, 'LMM/exp2_condConst_lmm_fixedeffectsAnti.csv')
+write.csv(randomeffects, 'LMM/exp1B_condConst_lmm_randomEffects.csv')
+write.csv(fixedeffectsAnti, 'LMM/exp1B_condConst_lmm_fixedeffectsAnti.csv')
 
 
 rAV <- ranef(aSPv_lmm)
@@ -118,8 +117,8 @@ colnames(rAV) <- c("Constant", "P(v33)", 'Axis[vert.]')
 
 
 starAnti.out <- stargazer(aSPv_lmm,
-                          out='LMM/exp2_condConst_lmmResults_antiParams.html', 
-                          title='Exp 2A: Anticipatory Parameters – Constant Speed Mixture',
+                          out='LMM/exp1B_condConst_lmmResults_antiParams.html', 
+                          title='Exp 1B: Anticipatory Parameters – Constant Speed Mixture',
                           single.row=TRUE,
                           report = "vc*stp",
                           star.cutoffs = c(.01, .001, .0001),
@@ -136,7 +135,7 @@ starAnti.out <- stargazer(aSPv_lmm,
                             'Constant'))
 
 #########################################
-
+## N-1 Effect
 df$prob <- df$prob-0.5
 aSPv_lmm <- lme(aSPv ~ 1 + n1_vel*prob,
                 random = list(sub = ~ 1 + prob + n1_vel),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
@@ -161,16 +160,16 @@ fixedeffectsAnti <- data.frame(
 )
 colnames(fixedeffectsAnti) <- columns
 
-write.csv(randomeffects, 'LMM/exp2_condConst_lmm_n1Eff_randomEffects.csv')
-write.csv(fixedeffectsAnti, 'LMM/exp2_condConst_lmm_n1Eff_fixedeffectsAnti.csv')
+write.csv(randomeffects, 'LMM/exp1B_condConst_lmm_n1Eff_randomEffects.csv')
+write.csv(fixedeffectsAnti, 'LMM/exp1B_condConst_lmm_n1Eff_fixedeffectsAnti.csv')
 
 rAV <- ranef(aSPv_lmm)
 colnames(rAV) <- c("Constant", "P(v33)", "N-1 vel[v11]")
 
 
 starAnti.out <- stargazer(aSPv_lmm,
-                          out='LMM/exp2_condConst_lmmResults_n1Eff_antiParams.html', 
-                          title='Exp 2A: Anticipatory Parameters - Sequential Effects',
+                          out='LMM/exp1B_condConst_lmmResults_n1Eff_antiParams.html', 
+                          title='Exp 1B: Anticipatory Parameters - Sequential Effects',
                           single.row=TRUE,
                           report = "vc*stp",
                           star.cutoffs = c(.01, .001, .0001),

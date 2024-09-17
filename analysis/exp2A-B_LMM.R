@@ -35,46 +35,46 @@ formatRanef <- function(r1) { # receives the ranef structure
 xVar <- c('sub', 'condition', 'trial', 'exp', 'trial_velocity','sub_txt', 'aSPv_x', 'aSPon_x', 'SPlat_x', 'SPacc_x')
 yVar <- c('sub', 'condition', 'trial', 'exp', 'trial_velocity','sub_txt', 'aSPv_y', 'aSPon_y', 'SPlat_y', 'SPacc_y')
 
-setwd("~/Experiments/data/outputs/exp2ctrl/")
+setwd("~/Experiments/data/outputs/exp2B/")
 
-dataCtrl <- read.csv('exp2ctrl_params_condAccel.csv', sep=',')
-dataCtrl <- dataCtrl[dataCtrl$trial>10,]
+data2B <- read.csv('exp2B_params.csv', sep=',')
+data2B <- data2B[data2B$trial>10,]
 
-dataCtrl$exp <- replicate(nrow(dataCtrl), 'constantTime')
+data2B$exp <- replicate(nrow(data2B), 'constantTime')
 
 
-setwd("~/Experiments/data/outputs/exp2/")
+setwd("~/Experiments/data/outputs/exp2A/")
 
-data <- read.csv('exp2_params_condAccel.csv', sep=',')
-data <- data[data$trial>10,]
+data2A <- read.csv('exp2A_params.csv', sep=',')
+data2A <- data2A[data2A$trial>10,]
 
-data$exp <- replicate(nrow(data), 'constantDistance')
+data2A$exp <- replicate(nrow(data2A), 'constantDistance')
 
-maxSub <- max(data$sub)
+maxSub <- max(data2A$sub)
 
-dataCtrl$sub <- dataCtrl$sub + maxSub
-dataCtrl[dataCtrl$sub==maxSub+1,'sub'] <- 1
-dataCtrl[dataCtrl$sub==maxSub+2,'sub'] <- 13
+data2B$sub <- data2B$sub + maxSub
+data2B[data2B$sub==maxSub+1,'sub'] <- 1
+data2B[data2B$sub==maxSub+2,'sub'] <- 13
 
-xAxisCtrl <- dataCtrl[xVar]
-yAxisCtrl <- dataCtrl[yVar]
+xAxis2B <- data2B[xVar]
+yAxis2B <- data2B[yVar]
 
-xAxisCtrl$axis <- replicate(nrow(xAxisCtrl), 'horiz.')
-yAxisCtrl$axis <- replicate(nrow(xAxisCtrl), 'vert.')
+xAxis2B$axis <- replicate(nrow(xAxis2B), 'horiz.')
+yAxis2B$axis <- replicate(nrow(xAxis2B), 'vert.')
 
-xAxis <- data[xVar]
-yAxis <- data[yVar]
+xAxis2A <- data2A[xVar]
+yAxis2A <- data2A[yVar]
 
-xAxis$axis <- replicate(nrow(xAxis), 'horiz.')
-yAxis$axis <- replicate(nrow(xAxis), 'vert.')
+xAxis2A$axis <- replicate(nrow(xAxis2A), 'horiz.')
+yAxis2A$axis <- replicate(nrow(xAxis2A), 'vert.')
 
 new_colnames <- c('sub','condition','trial','exp','trial_velocity','sub_txt','aSPv','aSPon','SPlat','SPacc','axis')
-colnames(xAxis) <- new_colnames
-colnames(yAxis) <- new_colnames
-colnames(xAxisCtrl) <- new_colnames
-colnames(yAxisCtrl) <- new_colnames
+colnames(xAxis2A) <- new_colnames
+colnames(yAxis2A) <- new_colnames
+colnames(xAxis2B) <- new_colnames
+colnames(yAxis2B) <- new_colnames
 
-data <- rbind(xAxis,yAxis,xAxisCtrl,yAxisCtrl)
+data <- rbind(xAxis2A,yAxis2A,xAxis2B,yAxis2B)
 
 prob <- data$condition
 prob[prob=='Va-100_V0-0'] <- 0.0
@@ -97,11 +97,6 @@ aSPv_lmm <- lme(aSPv ~ 1 + prob + axis + exp + axis:exp,
 summary(aSPv_lmm)
 qqnorm(aSPv_lmm, ~ resid(., type = "p") | sub, abline = c(0, 1))
 hist(resid(aSPv_lmm))
-
-# aSPv_lmm <- lme(aSPv ~ 1 + prob*axis*exp,
-#                 random = list(sub = ~ 1 + prob + axis + exp),method = 'ML', na.action = na.omit, control = lmeControl(opt = "optim"),
-#                 data=df)
-# summary(aSPv_lmm)
 
 
 randomeffects <- data.frame(
